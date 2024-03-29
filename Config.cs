@@ -8,12 +8,16 @@ static class Config {
     public static bool Fullscreen = false;
 
     // Simulation Settings
-    public static bool MultithreadingEnabled = false;
+    public static bool MultithreadingEnabled = true;
 
     // Debug Settings
     public static bool VerboseLogging = true;
 
     public static void Init() {
         Pepper.Log("Configuration loaded", LogType.System);
+
+        if (MultithreadingEnabled) {
+            Pepper.Log("Experimental multithreading is enabled!", LogType.System, LogLevel.Warning);
+        }
     }
 }

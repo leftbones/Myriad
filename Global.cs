@@ -4,4 +4,5 @@ namespace Myriad;
 
 static class Global {
     public static int PixelScale = 4;
+    public static int ChunkSize = 50;
 }

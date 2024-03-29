@@ -19,9 +19,8 @@ class World {
     private Rectangle _sourceRect;
     private Rectangle _destRect;
 
-    private int _chunkSize;
-    private int _maxChunksX;
-    private int _maxChunksY;
+    private readonly int _maxChunksX;
+    private readonly int _maxChunksY;
 
     public World(int width, int height) {
         Size = new Vector2i(width, height);
@@ -34,15 +33,16 @@ class World {
         _destRect = new Rectangle(0, 0, Config.WindowSize.X, Config.WindowSize.Y);
 
         // Chunk/matrix setup
-        _chunkSize = 50;
-        _maxChunksX = Size.X / _chunkSize;
-        _maxChunksY = Size.Y / _chunkSize;
+        Global.ChunkSize = 50;
+        _maxChunksX = Size.X / Global.ChunkSize;
+        _maxChunksY = Size.Y / Global.ChunkSize;
 
         if (Config.VerboseLogging) { Pepper.Log("Building chunks...", LogType.World); }
         Chunks = new Chunk[_maxChunksX * _maxChunksY];
         for(int x = 0; x < _maxChunksX; x++) {
             for(int y = 0; y < _maxChunksY; y++) {
-                Chunks[x + y * _maxChunksX] = new Chunk(new Vector2i(x * _chunkSize, y * _chunkSize), new Vector2i(_chunkSize, _chunkSize));
+                var ThreadOrder = y % 2 == 0 ? x % 2 == 0 ? 1 : 2 : x % 2 == 0 ? 3 : 4;
+                Chunks[x + y * _maxChunksX] = new Chunk(new Vector2i(x * Global.ChunkSize, y * Global.ChunkSize), ThreadOrder);
             }
         }
 
@@ -115,7 +115,20 @@ class World {
 
     // Performed immediately before the main Update method
     public void UpdateStart() {
+        foreach (var Chunk in Chunks) {
+            var IET = Tick % 2 == 0;
+            var SX = Chunk.Position.X;
+            var SY = Chunk.Position.Y;
 
+            for (int y = SY + Global.ChunkSize - 1; y >= SY; y--) {
+                for (int x = IET ? SX : SX + Global.ChunkSize - 1; IET ? x < SX + Global.ChunkSize : x >= SX; x += IET ? 1 : -1) {
+                    var P = Get(x, y);
+                    if (P.ID > -1) {
+                        P.Updated = false;
+                    }
+                }
+            }
+        }
     }
 
     // Main update method
@@ -123,9 +136,40 @@ class World {
         UpdateStart();
 
         // Update each Pixel in the World
+        if (Config.MultithreadingEnabled) {
+            ThreadedUpdate();
+        } else {
+            foreach (var Chunk in Chunks) {
+                ProcessChunk(Chunk);
+            }
+        }
+
+        UpdateEnd();
+    }
+
+    // Update in multiple threads
+    public async void ThreadedUpdate() {
+        var ChunkGroups = Chunks.GroupBy(C => C.ThreadOrder).OrderBy(G => G.Key);
+
+        foreach (var Group in ChunkGroups) {
+            var Tasks = Group.Select(Chunk => Task.Run(() => ProcessChunk(Chunk))).ToList();
+            await Task.WhenAll(Tasks);
+        }
+    }
+
+    // Performed immediately after the main Update method
+    public void UpdateEnd() {
+        Tick++;
+    }
+
+    // Process all Pixels in a Chhnk
+    public void ProcessChunk(Chunk chunk) {
         var IET = Tick % 2 == 0;
-        for (int y = Size.Y - 1; y >= 0; y--) {
-            for (int x = IET ? 0 : Size.X - 1; IET ? x < Size.X : x >= 0; x += IET ? 1 : -1) {
+        var SX = chunk.Position.X;
+        var SY = chunk.Position.Y;
+
+        for (int y = SY + Global.ChunkSize - 1; y >= SY; y--) {
+            for (int x = IET ? SX : SX + Global.ChunkSize - 1; IET ? x < SX + Global.ChunkSize : x >= SX; x += IET ? 1 : -1) {
                 var P = Get(x, y);
                 if (P.ID > -1 && !P.Updated) {
                     P.Updated = true;
@@ -137,13 +181,6 @@ class World {
                 }
             }
         }
-
-        UpdateEnd();
-    }
-
-    // Performed immediately after the main Update method
-    public void UpdateEnd() {
-        Tick++;
     }
 
     // Draw each visible Pixel in the World to the render texture
@@ -164,9 +201,13 @@ class World {
 
         // Debug Drawing
         foreach (var C in Chunks) {
-            DrawLine(C.Position.X * Global.PixelScale, C.Position.Y * Global.PixelScale, (C.Position.X + C.Size.X) * Global.PixelScale, C.Position.Y * Global.PixelScale, Color.DarkGray);
-            DrawLine(C.Position.X * Global.PixelScale, C.Position.Y * Global.PixelScale, C.Position.X * Global.PixelScale, (C.Position.Y + C.Size.Y) * Global.PixelScale, Color.DarkGray);
-            Canvas.DrawText($"{C.Position.X / _chunkSize}, {C.Position.Y / _chunkSize}", C.Position.X * Global.PixelScale + 5, C.Position.Y * Global.PixelScale + 5, 8, color: Color.DarkGray);
+            DrawLine(C.Position.X * Global.PixelScale, C.Position.Y * Global.PixelScale, (C.Position.X + Global.ChunkSize) * Global.PixelScale, C.Position.Y * Global.PixelScale, Color.DarkGray);
+            DrawLine(C.Position.X * Global.PixelScale, C.Position.Y * Global.PixelScale, C.Position.X * Global.PixelScale, (C.Position.Y + Global.ChunkSize) * Global.PixelScale, Color.DarkGray);
+            Canvas.DrawText($"{C.Position.X / Global.ChunkSize}, {C.Position.Y / Global.ChunkSize}", C.Position.X * Global.PixelScale + 5, C.Position.Y * Global.PixelScale + 5, 8, color: Color.DarkGray);
+
+            // if (C.ThreadOrder == _threadGroup) {
+            //     DrawRectangle(C.Position.X * Global.PixelScale, C.Position.Y * Global.PixelScale, Global.ChunkSize * Global.PixelScale, Global.ChunkSize * Global.PixelScale, new Color(0, 255, 0, 120));
+            // }
         }
     }
 }
