@@ -10,21 +10,23 @@ namespace Myriad;
 /// </summary>
 
 enum LogType { System, Engine, World, Interface, Input, Debug, Other};
-enum LogLevel { Message, Warning, Error, Fatal, Debug };
+enum LogLevel { Message, Warning, Error, Fatal, Special };
 
 static class Pepper {
-    private static Color MessageColor = Color.Transparent;
-    private static Color WarningColor = Color.Yellow;
-    private static Color ErrorColor = Color.OrangeRed;
-    private static Color FatalColor = Color.DarkRed;
-    private static Color DebugColor = Color.Magenta;
+    private static Color MessageColor =     Color.Transparent;
+    private static Color WarningColor =     Color.Yellow;
+    private static Color ErrorColor =       Color.OrangeRed;
+    private static Color FatalColor =       Color.DarkRed;
+    private static Color SpecialColor =     Color.Green;
+    private static Color DebugColor =       Color.Magenta;
 
     // Settings
-    public static bool LogMessage = true;
-    public static bool LogWarning = true;
-    public static bool LogError = true;
-    public static bool LogFatal = true;
-    public static bool LogDebug = true;
+    public static bool LogMessage =         true;
+    public static bool LogWarning =         true;
+    public static bool LogError =           true;
+    public static bool LogFatal =           true;
+    public static bool LogSpecial =         true;
+    public static bool LogDebug =           true;
 
 
     // Generate the current timestamp (for logs)
@@ -53,17 +55,18 @@ static class Pepper {
         else if (level == LogLevel.Warning && !LogWarning) { return; }
         else if (level == LogLevel.Error && !LogError) { return; }
         else if (level == LogLevel.Fatal && !LogFatal) { return; }
-        else if (level == LogLevel.Debug && !LogDebug) { return; }
+        else if (level == LogLevel.Special && !LogSpecial) { return; }
 
         var Col = MessageColor;
         switch(level) {
             case LogLevel.Warning: Col = WarningColor; break;
             case LogLevel.Error: Col = ErrorColor; break;
             case LogLevel.Fatal: Col = FatalColor; break;
-            case LogLevel.Debug: Col = DebugColor; break;
+            case LogLevel.Special: Col = SpecialColor; break;
             default: break;
         }
 
+        // Always use DebugColor for Debug logs
         if (type is LogType.Debug) {
             Col = DebugColor;
         }

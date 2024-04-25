@@ -1,2 +1,6 @@
 bin/
 obj/
+media/
+
+*.sln
+imgui.ini

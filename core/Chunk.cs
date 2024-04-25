@@ -24,6 +24,7 @@ class Chunk {
     public Chunk(Vector2i position, int thread_order) {
         Position = position;
         ThreadOrder = thread_order;
+        Awake = true;
     }
 
     public void Wake(Vector2i pos) {

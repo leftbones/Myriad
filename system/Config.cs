@@ -11,7 +11,10 @@ static class Config {
     public static bool MultithreadingEnabled = true;
 
     // Debug Settings
+    public static bool DebugMode = true;
     public static bool VerboseLogging = true;
+    public static bool DrawChunkBorders = false;
+    public static bool DrawUpdateRects = false;
 
     public static void Init() {
         Pepper.Log("Configuration loaded", LogType.System);

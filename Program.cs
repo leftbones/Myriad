@@ -1,4 +1,6 @@
-﻿using Raylib_cs;
+﻿using rlImGui_cs;
+using ImGuiNET;
+using Raylib_cs;
 using static Raylib_cs.Raylib;
 using static Raylib_cs.TraceLogLevel;
 
@@ -10,6 +12,8 @@ class Program {
         SetTraceLogLevel(Warning | Error | Fatal);
         SetExitKey(KeyboardKey.Null);
         InitWindow(Config.WindowSize.X, Config.WindowSize.Y, "Myriad");
+
+        rlImGui.Setup();
 
         Pepper.Log("Program started successfully", LogType.System);
 

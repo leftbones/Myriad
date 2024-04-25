@@ -1,0 +1,13 @@
+[Material]
+type = "liquid"
+name = "lava"
+ui_name = "Lava"
+color = "cf1020ff"
+viscosity = 25
+
+[[Reaction]]
+chance = 5
+input_1 = "lava"
+input_2 = "[meltable]"
+output_1 = "lava"
+output_2 = "[meltable]_molten"

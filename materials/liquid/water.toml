@@ -1,0 +1,19 @@
+[Material]
+type = "liquid"
+name = "water"
+ui_name = "Water"
+color = "0197f488"
+
+[[Reaction]]
+chance = 1
+input_1 = "water"
+input_2 = "lava"
+output_1 = "steam"
+output_2 = "basalt"
+
+[[Reaction]]
+chance = 1
+input_1 = "water"
+input_2 = "[rustable]"
+output_1 = "water"
+output_2 = "[rustable]_rust"

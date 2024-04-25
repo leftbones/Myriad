@@ -1,0 +1,6 @@
+[Material]
+type = "gas"
+name = "steam"
+ui_name = "Steam"
+color = "8499ba55"
+lifespan = 1250

@@ -1,0 +1,8 @@
+[Material]
+type = "powder"
+name = "sand"
+ui_name = "Sand"
+color = "e6bc5cff"
+offset = 10
+health = 5
+softness = 25

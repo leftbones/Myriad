@@ -4,7 +4,7 @@ namespace Myriad;
 
 class Timer {
     public double StartTime { get; private set; }
-    public double Lifetime { get; private set; }
+    public double Lifetime { get; set; }
     public Action Action { get; private set; }
     public bool Repeat { get; private set; }
 

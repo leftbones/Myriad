@@ -1,0 +1,8 @@
+[Material]
+type = "solid"
+name = "stone"
+ui_name = "Stone"
+color = "7f8076ff"
+offset = 15
+health = 100
+# texture = "assets/textures/stone.png"
