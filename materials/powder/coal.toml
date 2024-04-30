@@ -1,0 +1,13 @@
+[Material]
+type = "powder"
+name = "coal"
+ui_name = "Coal"
+color = "1b1b1cff"
+offset = 5
+softness = 5
+tags = ["flammable", "corrodible"]
+
+[[Reaction]]
+chance = 1
+input = ["coal", "lava"]
+output = ["smoke", "lava"]

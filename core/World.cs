@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Text.RegularExpressions;
 using Calcium;
 using Raylib_cs;
 using static Raylib_cs.Raylib;
@@ -14,8 +15,8 @@ class World {
     public List<Particle> Particles { get; private set; }
 
     public int Tick { get; private set; }
-    public int PixelCount => Pixels.Where(P => P.ID != "air").Count();
-    public int ParticleCount => Particles.Count;
+    public int PixelCount => Pixels.Where(P => P.ID != "air").Count();  // THIS IS VERY SLOW
+    public int ParticleCount => Particles.Count;    // THIS IS NOT MUCH BETTER
 
     private Image _buffer;
     private Texture2D _texture;
@@ -34,7 +35,7 @@ class World {
         _texture = LoadTextureFromImage(_buffer);
 
         _sourceRect = new Rectangle(0, 0, Size.X, Size.Y);
-        _destRect = new Rectangle(0, 0, Config.WindowSize.X, Config.WindowSize.Y);
+        _destRect = new Rectangle(0, 0, Config.Resolution.X, Config.Resolution.Y);
 
         // Chunk/matrix setup
         Global.ChunkSize = 50;
@@ -64,7 +65,7 @@ class World {
         Pepper.Log("World initialized", LogType.System);
     }
 
-    // FIXME: Broken
+    // FIXME: Kinda broken? Definitely needs work
     // Create an explosion at a position in the World
     public void MakeExplosion(int x, int y, int radius) { MakeExplosion(new Vector2i(x, y), radius); }
     public void MakeExplosion(Vector2i pos, int radius) {
@@ -77,25 +78,29 @@ class World {
                     continue;
                 }
 
+                PointCache.Add(PT);
+
                 if (!InBounds(PT)) {
                     continue;
                 }
-
-                PointCache.Add(PT);
                 
                 var P = Get(PT);
-                if (P.ID == "air") { // Empty, chance to make fire
-                    if (RNG.Chance(40)) {
-                        Set(PT, Materials.New("fire", Colors[RNG.Range(0, 2)]));
+                if (P.ID == "air") {
+                    if (RNG.Chance(25)) {
+                        var Fire = Materials.New("fire");
+                        Fire.Color = Colors[RNG.Range(0, 2)];
+                        Set(PT, Fire);
                     }
-                    return;
+                    continue;
                 }
 
                 P.Damage(1);
                 P.Stain(new Color(25, 25, 25, 255), 0.1f);
 
-                var M = Materials.Index[P.ID];
+                // TODO: Create particles when a powder or liquid is damaged but not destroyed
+                // TODO: Reduce damage done by the explosion further away from the center
 
+                var M = Materials.Index[P.ID];
                 if (M.Type == "powder" || M.Type == "liquid") {
                     var Particle = new Particle(P.ID, PT.ToVec2(), P.Color);
                     Particle.ApplyForce(new Vector2(RNG.Roll(1.5f) * RNG.Range(-1, 1), RNG.Roll(2.5f) * -1));
@@ -148,6 +153,11 @@ class World {
         return Pixels[pos.X + pos.Y * Size.X];
     }
 
+    // Quick access to material data
+    public string GetID(Vector2i pos) => Get(pos).ID;
+    public string GetName(Vector2i pos) => Materials.Index[GetID(pos)].Name;
+    public string GetType(Vector2i pos) => Materials.Index[GetID(pos)].Type;
+
     // Place a Pixel in the World
     public void Set(int x, int y, Pixel pixel, bool wake_chunk=true) { Set(new Vector2i(x, y), pixel, wake_chunk); }
     public void Set(Vector2i pos, Pixel pixel, bool wake_chunk=true) {
@@ -186,7 +196,10 @@ class World {
     public bool ValidSwap(int x1, int y1, int x2, int y2) { return ValidSwap(new Vector2i(x1, y1), new Vector2i(x2, y2)); }
     public bool ValidSwap(Vector2i pos1, Vector2i pos2) {
         if (!InBoundsAndEmpty(pos2)) { return false; }
-        return UnsafeSwap(pos1, pos2);
+        var P1 = Get(pos1);
+        var P2 = Get(pos2);
+        if (Materials.GetDensity(P1.ID) > Materials.GetDensity(P2.ID)) { return UnsafeSwap(pos1, pos2); }
+        return false;
     }
 
     // Performed immediately before the main Update method
@@ -255,8 +268,11 @@ class World {
                         if (InBounds(Next)) {
                             var Pixel = Get(Next);
                             if (Pixel.ID != "air") {
-                                // Particle collided with a Pixel and will become a Pixel
-                                Set(Point, new Pixel(P.PixelID, P.Color));
+                                // Particle collided with a Pixel and will become a Pixel or disappear
+                                if (!P.Empty) {
+                                    var PP = new Pixel(P.PixelID) { Color = P.Color };
+                                    Set(Point, PP);
+                                }
                                 Particles.RemoveAt(i);
                                 break;
                             }
@@ -272,7 +288,7 @@ class World {
         UpdateStart();
 
         // Update each Pixel in the World
-        if (Config.MultithreadingEnabled) {
+        if (Config.Multithreading) {
             ThreadedUpdate();
         } else {
             foreach (var Chunk in Chunks) {
@@ -312,16 +328,23 @@ class World {
         var SX = chunk.Position.X;
         var SY = chunk.Position.Y;
 
+        // for (int y = SY; y < SY + Global.ChunkSize; y++) {
+            // for (int x = SX; x < SX + Global.ChunkSize; x++) {
         for (int y = SY + Global.ChunkSize - 1; y >= SY; y--) {
             for (int x = IET ? SX : SX + Global.ChunkSize - 1; IET ? x < SX + Global.ChunkSize : x >= SX; x += IET ? 1 : -1) {
                 var P = Get(x, y);
                 if (P.ID == "air" || P.Updated) { continue; }
 
                 var M = Materials.Index[P.ID];
-                P.Updated = true;
                 var Pos = new Vector2i(x, y);
 
+                P.Updated = true;
+
+                // Behavior
                 switch (M.Type) {
+                    case "solid":
+                        continue;
+
                     case "powder":
                         Materials.TickPowder(this, P, Pos);
                         break;
@@ -334,6 +357,18 @@ class World {
                         Materials.TickGas(this, P, Pos);
                         break;
                 }
+
+                // Reactions
+                var Dir = Direction.Random(Direction.Cardinal);
+                if (InBounds(Pos + Dir)) {
+                    var NP = Get(Pos + Dir);
+                    foreach (var R in M.Reactions.Where(R => R.Input.Item2 == NP.ID)) {
+                        if (RNG.Odds(R.Chance)) {
+                            Set(Pos, Materials.New(R.Output.Item1));
+                            Set(Pos + Dir, Materials.New(R.Output.Item2));
+                        }
+                    }
+                }
             }
         }
     }
@@ -341,7 +376,7 @@ class World {
     // Draw each everything visible in the World
     public unsafe void Draw() {
         // All Pixels
-        ImageClearBackground(ref _buffer, Color.Black);
+        ImageClearBackground(ref _buffer, Global.BackgroundColor);
 
         for (int y = Size.Y - 1; y >= 0; y--) {
             for (int x = 0; x < Size.X; x++) {
@@ -363,8 +398,9 @@ class World {
         // Debug Drawing
         if (Config.DrawChunkBorders) {
             foreach (var C in Chunks) {
+                var TextCol = C.Awake ? Color.White : Color.DarkGray;
                 DrawRectangleLines(C.Position.X * Global.PixelScale - 1, C.Position.Y * Global.PixelScale - 1, Global.ChunkSize * Global.PixelScale + 1, Global.ChunkSize * Global.PixelScale + 1, Color.DarkGray);
-                Canvas.DrawText($"{C.Position.X / Global.ChunkSize}, {C.Position.Y / Global.ChunkSize}", C.Position.X * Global.PixelScale + 5, C.Position.Y * Global.PixelScale + 5, 8, color: Color.DarkGray);
+                Canvas.DrawText($"{C.Position.X / Global.ChunkSize}, {C.Position.Y / Global.ChunkSize}", C.Position.X * Global.PixelScale + 5, C.Position.Y * Global.PixelScale + 5, 8, color: TextCol);
             }
         }
 
@@ -375,7 +411,7 @@ class World {
                         continue;
                     }
 
-                    var Rect = new Rectangle((C.Position.X + C.DX1) * Global.PixelScale, (C.Position.Y + C.DY1) * Global.PixelScale, (C.DX2 - C.DX1) * Global.PixelScale, (C.DY2 - C.DY1) * Global.PixelScale);
+                    var Rect = new Rectangle((C.Position.X + C.DX1) * Global.PixelScale, (C.Position.Y + C.DY1) * Global.PixelScale, (C.DX2 - C.DX1 + 1) * Global.PixelScale, (C.DY2 - C.DY1 + 1) * Global.PixelScale);
                     DrawRectangleLines((int)Rect.X, (int)Rect.Y, (int)Rect.Width, (int)Rect.Height, Color.Green);
                 }
             }

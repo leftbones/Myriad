@@ -1,0 +1,17 @@
+[Material]
+type = "liquid"
+name = "oil"
+ui_name = "Oil"
+color = "573b2a88"
+viscosity = 5
+tags = ["flammable"]
+
+[[Reactions]]
+chance = 5
+input = ["oil", "water"]
+output = ["oil", "water_dirty"]
+
+[[Reactions]]
+chance = 1
+input = ["oil", "water"]
+output = ["water_dirty", "water_dirty"]

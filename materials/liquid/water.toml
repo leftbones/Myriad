@@ -2,18 +2,19 @@
 type = "liquid"
 name = "water"
 ui_name = "Water"
-color = "0197f488"
+color = "0197f477"
 
 [[Reaction]]
 chance = 1
-input_1 = "water"
-input_2 = "lava"
-output_1 = "steam"
-output_2 = "basalt"
+input = ["water", "lava"]
+output = ["steam", "stone"]
 
 [[Reaction]]
 chance = 1
-input_1 = "water"
-input_2 = "[rustable]"
-output_1 = "water"
-output_2 = "[rustable]_rust"
+input = ["water", "[rustable]"]
+output = ["water", "[rustable]_rust"]
+
+[[Reaction]]
+chance = 5
+input = ["water", "acid"]
+output = ["water", "water"]

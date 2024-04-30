@@ -1,0 +1,10 @@
+[Material]
+type = "liquid"
+name = "acid"
+ui_name = "Acid"
+color = "00ff0088"
+
+[[Reaction]]
+chance = 50
+input = ["acid", "[corrodible]"]
+output = ["acid", "hydrogen_gas"]

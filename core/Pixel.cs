@@ -2,26 +2,24 @@ using Raylib_cs;
 
 namespace Myriad;
 
+// TODO
+// - Move the Tick, Damage, and Stain methods to some sort of "PixelHandler" class or something, and move some parts of World that deal with Pixel properties to that class
+
 class Pixel {
     public string ID { get; private set; }
-    public Color Color { get; set; }
-    public bool Sleeping { get; set; }
-    public bool Updated { get; set; }
-    public int Lifetime { get; set; }
-    public int Lifespan { get; set; }
-    public int Health { get; set; }
+    public Color Color { get; set; }            = Color.Magenta;
+    public bool Sleeping { get; set; }          = false;
+    public bool Updated { get; set; }           = false;
+    public int Lifetime { get; set; }           = 0;
+    public int Lifespan { get; set; }           = -1;
+    public int Health { get; set; }             = -1;
 
-    public Pixel(string id="air", Color? color=null, int? lifespan=null, int? health=null) {
+    public Pixel(string id="air") {
         ID = id;
-        Color = color ?? Color.Magenta;
-        Lifespan = lifespan ?? -1;
-        Health = health ?? -1;
     }
 
     public void Tick() {
-        if (Lifespan > 0) {
-            Lifetime++;
-        }
+        // Unused
     }
 
     public void Damage(int amount) {
@@ -29,6 +27,7 @@ class Pixel {
     }
 
     public void Stain(Color tint, float amount=0.5f) {
+        if (Materials.GetType(ID) == "liquid") { return; }
         Color = Canvas.BlendColor(Color, tint, amount);
     }
 }

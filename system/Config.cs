@@ -4,11 +4,13 @@ namespace Myriad;
 
 static class Config {
     // Window Properties
-    public static Vector2i WindowSize = new(800, 600);
+    public static Vector2i Resolution = new(1200, 800);
     public static bool Fullscreen = false;
+    public static bool SystemCursor = false;
 
     // Simulation Settings
-    public static bool MultithreadingEnabled = true;
+    public static bool ShowFPS = true;
+    public static bool Multithreading = true;
 
     // Debug Settings
     public static bool DebugMode = true;
@@ -19,7 +21,7 @@ static class Config {
     public static void Init() {
         Pepper.Log("Configuration loaded", LogType.System);
 
-        if (MultithreadingEnabled) {
+        if (Multithreading) {
             Pepper.Log("Experimental multithreading is enabled!", LogType.System, LogLevel.Warning);
         }
     }

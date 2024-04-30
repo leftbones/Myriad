@@ -15,7 +15,7 @@ static class Cheats {
     public static void NukeWorld(World world) {
         for (int x = 0; x < world.Size.X; x++) {
             for (int y = 0; y < world.Size.Y; y++) {
-                if (RNG.Chance(1)) {
+                if (!world.IsEmpty(x, y) && RNG.Chance(1)) {
                     world.MakeExplosion(new Vector2i(x, y), 10);
                 }
             }

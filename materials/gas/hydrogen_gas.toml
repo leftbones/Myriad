@@ -1,0 +1,11 @@
+[Material]
+type = "gas"
+name = "hydrogen_gas"
+ui_name = "Hydrogen"
+color = "00ff0022"
+lifespan = 700
+
+[[Reaction]]
+chance = 1
+input = ["hydrogen_gas", "[corrodible]"]
+output = ["air", "hydrogen_gas"]

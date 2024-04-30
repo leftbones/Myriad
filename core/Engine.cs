@@ -1,16 +1,22 @@
 using System.Numerics;
 using Calcium;
-using rlImGui_cs;
 using ImGuiNET;
 using Raylib_cs;
 using static Raylib_cs.Raylib;
-
 namespace Myriad;
+
+// TODO:
+// - Add a config option to disable debug statistics tracking
 
 static class Engine {
     public static World World { get; private set; }
     public static int TicksPerSecond = 200;
     public static double TickRateMultiplier = 1.0;
+
+    public static bool ShouldQuit { get; private set; }
+
+    public static Vector2i MousePos => new ((int)Math.Round((double)GetMouseX() / Global.PixelScale),
+                                            (int)Math.Round((double)GetMouseY() / Global.PixelScale));
 
     public static List<Timer> Timers = [];
     private static Timer _tickTimer;
@@ -20,11 +26,15 @@ static class Engine {
     // Initialize all engine components
     public static void Init() {
         Config.Init();
-        Canvas.Init();
         Materials.Init();
+        Canvas.Init();
 
-        World = new World(Config.WindowSize.X / Global.PixelScale, Config.WindowSize.Y / Global.PixelScale);
+        World = new World(Config.Resolution.X / Global.PixelScale, Config.Resolution.Y / Global.PixelScale);
         Pepper.Log("Engine initialized", LogType.System);
+
+        if (Config.DebugMode) {
+            Debbie.Init();
+        }
 
         // Simulation Timer
         _tickTimer = new Timer(1.0 / (TicksPerSecond * TickRateMultiplier), World.Update, true, true, true);
@@ -49,26 +59,23 @@ static class Engine {
 
     // Handle input (temporary)
     public static void Input() {
-        var MousePos = new Vector2i(
-            (int)Math.Round((double)GetMouseX() / Global.PixelScale),
-            (int)Math.Round((double)GetMouseY() / Global.PixelScale)
-        );
+        // Keyboard
+        if (IsKeyPressed(KeyboardKey.Tab)) { Debbie.ShowCommandPrompt = true; }
 
+        if (IsKeyPressed(KeyboardKey.Escape)) {
+            if (Debbie.ShowCommandPrompt) { Debbie.ShowCommandPrompt = false; }
+            else { Quit(); }
+        }
+
+        // Mouse
         if (ImGui.GetIO().WantCaptureMouse) { return; }
-
-        if (IsKeyDown(KeyboardKey.LeftShift)) {
-            if (IsMouseButtonPressed(MouseButton.Left) && World.InBounds(MousePos)) {
-                World.MakeExplosion(MousePos, Canvas.BrushSize * 10);
-            }
-        } else {
-            if (IsMouseButtonDown(MouseButton.Left) && World.InBounds(MousePos)) {
-                for (int x = -Canvas.BrushSize; x <= Canvas.BrushSize; x++) {
-                    for (int y = -Canvas.BrushSize; y <= Canvas.BrushSize; y++) {
-                        if (RNG.Chance(2) && World.InBounds(MousePos + new Vector2i(x, y))) {
-                            if (World.IsEmpty(MousePos + new Vector2i(x, y))) {
-                                var P = Materials.New(Canvas.BrushMaterial);
-                                World.Set(MousePos + new Vector2i(x, y), P);
-                            }
+        if (IsMouseButtonDown(MouseButton.Left) && World.InBounds(MousePos)) {
+            for (int x = -Canvas.BrushSize; x <= Canvas.BrushSize; x++) {
+                for (int y = -Canvas.BrushSize; y <= Canvas.BrushSize; y++) {
+                    if (World.InBounds(MousePos + new Vector2i(x, y))) {
+                        if (World.IsEmpty(MousePos + new Vector2i(x, y))) {
+                            var P = Materials.New(Canvas.BrushMaterial);
+                            World.Set(MousePos + new Vector2i(x, y), P);
                         }
                     }
                 }
@@ -95,52 +102,23 @@ static class Engine {
 
     // Draw all Engine components
     public static void Draw() {
+        ClearBackground(Global.BackgroundColor);
+
         World.Draw();
 
-        rlImGui.Begin();
-
-        ImGui.SetNextWindowPos(new Vector2(10, 10), ImGuiCond.Appearing);
-        ImGui.SetNextWindowSize(new Vector2(350, 400), ImGuiCond.Appearing);
-        if (ImGui.Begin($"Debug")) {
-            if (ImGui.CollapsingHeader("Info", ImGuiTreeNodeFlags.DefaultOpen)) {
-                ImGui.Text($"FPS: {GetFPS()}");
-                ImGui.Text($"Pixels: {World.PixelCount}");
-                ImGui.Text($"Particles: {World.ParticleCount}");
-            }
-
-            if (ImGui.CollapsingHeader("Brush", ImGuiTreeNodeFlags.DefaultOpen)) {
-                if (ImGui.Button("Mode")) { Canvas.BrushMode = (Canvas.BrushMode + 1) % 2; }
-                ImGui.SameLine(); ImGui.Text(Canvas.BrushMode == 0 ? "Paint" : "Erase");
-
-                if (ImGui.Button("Type")) { Canvas.BrushType = (Canvas.BrushType + 1) % 2; }
-                ImGui.SameLine(); ImGui.Text(Canvas.BrushType == 0 ? "Brush" : "Rectangle");
-
-                if (Canvas.BrushType == 0) { ImGui.SliderInt("Size", ref Canvas.BrushSize, 1, 16); }
-                ImGui.Combo("Material", ref Canvas.BrushMaterialID, [.. Materials.ByID], Materials.ByID.Count);
-            }
-
-            if (ImGui.CollapsingHeader("Simulation", ImGuiTreeNodeFlags.DefaultOpen)) {
-                ImGui.InputInt("Speed", ref TicksPerSecond);
-                ImGui.SameLine(); if (ImGui.Button("Apply")) { SetTicksPerSecond(TicksPerSecond); }
-                ImGui.Checkbox("Multithreading", ref Config.MultithreadingEnabled);
-            }
-
-            if (ImGui.CollapsingHeader("Overlays", ImGuiTreeNodeFlags.DefaultOpen)) {
-                ImGui.Checkbox("Chunk borders", ref Config.DrawChunkBorders);
-                ImGui.Checkbox("Update rects", ref Config.DrawUpdateRects);
-            }
-
-            if (ImGui.CollapsingHeader("Commands", ImGuiTreeNodeFlags.DefaultOpen)) {
-                if (ImGui.Button("Clear")) { Cheats.FillWorld(World, "air"); }
-                ImGui.SameLine(); if (ImGui.Button("Fill")) { Cheats.FillWorld(World, Canvas.BrushMaterial); }
-                ImGui.SameLine(); if (ImGui.Button("NUKE!")) { Cheats.NukeWorld(World); }
-
-                if (ImGui.Button("Reload Materials")) { Materials.Reload(); };
-            }
+        if (Config.DebugMode) {
+            Debbie.Draw();
         }
 
-        ImGui.End();
+        if (Config.ShowFPS) {
+            var FPSText = $"FPS: {GetFPS()}";
+            var Offset = MeasureTextEx(Canvas.DefaultFont, FPSText, Canvas.DefaultFontSize, Canvas.DefaultFontSpacing);
+            Canvas.DrawText(FPSText, Config.Resolution.X - (int)Offset.X - 10, 10);
+        }
+    }
 
-        rlImGui.End();
+    // Exit safely
+    public static void Quit() {
+        ShouldQuit = true;
     }
 }

@@ -21,6 +21,9 @@ class Chunk {
 
     private readonly int _rectBuffer = 1;
 
+    private readonly int _timeToSleep = 10;
+    private int _sleepTimer;
+
     public Chunk(Vector2i position, int thread_order) {
         Position = position;
         ThreadOrder = thread_order;
@@ -29,6 +32,7 @@ class Chunk {
 
     public void Wake(Vector2i pos) {
         WakeNextStep = true;
+        _sleepTimer = _timeToSleep;
 
         if (Awake) {
             var X = pos.X - Position.X;
@@ -49,7 +53,16 @@ class Chunk {
     public void Step() {
         UpdateRect();
 
-        Awake = WakeNextStep;
+        if (Awake && !WakeNextStep) {
+            _sleepTimer--;
+            if (_sleepTimer == 0) {
+                Awake = false;
+            }
+        } else {
+            Awake = WakeNextStep;
+        }
+
+        // Awake = WakeNextStep;
         WakeNextStep = false;
     }
 

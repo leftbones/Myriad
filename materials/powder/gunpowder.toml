@@ -2,14 +2,12 @@
 type = "powder"
 name = "gunpowder"
 ui_name = "Gunpowder"
-color = "18181aff"
+color = "202022ff"
 offset = 25
 softness = 10
 tags = ["flammable", "explosive", "corrodible"]
 
 [[Reaction]]
 chance = 1
-input_1 = "gunpowder"
-input_2 = "lava"
-output_1 = "explosion"
-output_2 = "lava"
+input = ["gunpowder", "lava"]
+output = ["smoke", "lava"]

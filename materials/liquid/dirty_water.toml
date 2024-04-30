@@ -1,0 +1,16 @@
+[Material]
+type = "liquid"
+name = "water_dirty"
+ui_name = "Dirty Water"
+color = "35607b88"
+tags = ["corrodible"]
+
+[[Reaction]]
+chance = 1
+input = ["water_dirty", "lava"]
+output = ["steam", "stone"]
+
+[[Reaction]]
+chance = 1
+input = ["water_dirty", "[rustable]"]
+output = ["water_dirty", "[rustable]_rust"]

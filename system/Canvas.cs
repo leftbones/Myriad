@@ -5,15 +5,13 @@ using static Raylib_cs.Raylib;
 namespace Myriad;
 
 enum Anchor { TopLeft, TopRight, BottomLeft, BottomRight, Center }
-enum BrushMode { Paint, Erase };
-enum BrushType { Brush, Rectangle }
 
 static class Canvas {
     public static int BrushSize = 4;
-    public static int BrushMaterialID = 2;
+    public static int BrushMaterialID = Materials.ByID.IndexOf("sand");
     public static string BrushMaterial => Materials.ByID[BrushMaterialID];
-    public static int BrushType = 0;
     public static int BrushMode = 0;
+    public static int BrushType = 0;
 
     public static Font DefaultFont;
     public static int DefaultFontSize;

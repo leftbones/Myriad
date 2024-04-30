@@ -1,4 +1,5 @@
 using System.Numerics;
+using Raylib_cs;
 
 namespace Myriad;
 
@@ -8,4 +9,6 @@ static class Global {
 
     public static Vector2 Gravity = new Vector2(0, 0.1f);
     public static Vector2 ParticleGravity = new Vector2(0, 0.05f);
+
+    public static Color BackgroundColor = new Color(25, 40, 45, 255);
 }

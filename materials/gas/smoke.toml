@@ -1,0 +1,6 @@
+[Material]
+type = "gas"
+name = "smoke"
+ui_name = "Smoke"
+color = "44444466"
+lifespan = 1500

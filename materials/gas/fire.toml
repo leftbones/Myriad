@@ -3,11 +3,9 @@ type = "gas"
 name = "fire"
 ui_name = "Fire"
 color = "EB982AFF"
-lifespan = 25
+lifespan = 20
 
 [[Reaction]]
-chance = 1
-input_1 = "fire"
-input_2 = "gunpowder"
-output_1 = "air"
-output_2 = "fire"
+chance = 5
+input = ["fire", "[flammable]"]
+output = ["smoke", "fire"]

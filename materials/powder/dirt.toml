@@ -1,0 +1,8 @@
+[Material]
+type = "powder"
+name = "dirt"
+ui_name = "Dirt"
+color = "362517ff"
+offset = 15
+softness = 1
+tags = ["corrodible"]

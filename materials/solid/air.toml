@@ -1,0 +1,5 @@
+[Material]
+type = "solid"
+name = "air"
+ui_name = "Air"
+density = 0

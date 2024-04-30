@@ -11,7 +11,7 @@ class Program {
         // Setup
         SetTraceLogLevel(Warning | Error | Fatal);
         SetExitKey(KeyboardKey.Null);
-        InitWindow(Config.WindowSize.X, Config.WindowSize.Y, "Myriad");
+        InitWindow(Config.Resolution.X, Config.Resolution.Y, "Myriad");
 
         rlImGui.Setup();
 
@@ -27,15 +27,19 @@ class Program {
 
             // Draw
             BeginDrawing();
-            ClearBackground(Color.Black);
 
             Engine.Draw();
 
             EndDrawing();
+
+            if (Engine.ShouldQuit) {
+                break;
+            }
         }
 
         // Exit
         CloseWindow();
+        rlImGui.Shutdown();
         Pepper.Log("Program exited successfully", LogType.System);
     }
 }
