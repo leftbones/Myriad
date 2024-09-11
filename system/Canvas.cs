@@ -12,6 +12,7 @@ static class Canvas {
     public static string BrushMaterial => Materials.ByID[BrushMaterialID];
     public static int BrushMode = 0;
     public static int BrushType = 0;
+    public static bool PaintOnTop = false;
 
     public static Font DefaultFont;
     public static int DefaultFontSize;

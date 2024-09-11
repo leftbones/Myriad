@@ -1,7 +1,7 @@
 [Material]
-type = "powder"
 name = "coal"
 ui_name = "Coal"
+type = "powder"
 color = "1b1b1cff"
 offset = 5
 softness = 5

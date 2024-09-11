@@ -1,7 +1,7 @@
 [Material]
-type = "solid"
 name = "stone"
 ui_name = "Stone"
+type = "solid"
 color = "7f8076ff"
 offset = 15
 health = 100

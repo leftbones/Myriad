@@ -1,7 +1,7 @@
 [Material]
-type = "liquid"
 name = "acid"
 ui_name = "Acid"
+type = "liquid"
 color = "00ff0088"
 
 [[Reaction]]

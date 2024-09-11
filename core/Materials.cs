@@ -1,7 +1,6 @@
 using System.Text.RegularExpressions;
 using Tommy;
 using Calcium;
-using Raylib_cs;
 
 namespace Myriad;
 
@@ -9,16 +8,16 @@ namespace Myriad;
 // - Add some sort of handler for when we try to create a material but the data isn't found
 
 class Material() {
-    public string Type { get; set; }        // Solid, Liquid, Gas, Powder
-    public string ID { get; set; }          // Unique identifier
-    public string Name { get; set; }        // UI display name
-    public string Color { get; set; }       // Base color
-    public int Offset { get; set; }         // Amount of color variation
-    public int Density { get; set; }        // "Weight" of the material
-    public int Lifespan { get; set; }       // Number of ticks before decay
-    public int Health { get; set; }         // Amount of damage before death
-    public int Viscosity { get; set; }      // Flow rate of liquids
-    public int Softness { get; set; }       // Spread rate of powders
+    public string Type { get; set; }                // Solid, Liquid, Gas, Powder
+    public string ID { get; set; }                  // Unique identifier
+    public string Name { get; set; }                // UI display name
+    public string Color { get; set; }               // Base color
+    public int Offset { get; set; }                 // Amount of color variation
+    public int Density { get; set; }                // "Weight" of the material
+    public int Lifespan { get; set; }               // Number of ticks before decay
+    public int Health { get; set; }                 // Amount of damage before death
+    public int Viscosity { get; set; }              // Flow rate of liquids
+    public int Softness { get; set; }               // Spread rate of powders
 
     public List<string> Tags { get; set; } = [];
     public List<Reaction> Reactions { get; set; }= [];
@@ -43,12 +42,12 @@ static partial class Materials {
         { "Color", "ff00ffff" },
         { "Offset", 0 },
         { "Density_solid", 9999 },
-        { "Density_liquid", 1 },
-        { "Density_gas", -1 },
-        { "Density_powder", 2 },
+        { "Density_liquid", 1000 },
+        { "Density_gas", -1000 },
+        { "Density_powder", 2000 },
         { "Lifespan", -1 },
         { "Health", -1 },
-        { "Viscosity", 25 },
+        { "Viscosity", 0 },
         { "Softness", 0 },
     };
 
@@ -86,13 +85,13 @@ static partial class Materials {
                 Type = Table["Material"]["type"],
                 ID = Table["Material"]["name"],
                 Name = Table["Material"]["ui_name"],
-                Color = Table["Material"]["color"] ==           "Tommy.TomlLazy"    ? Defaults["Color"]         : Table["Material"]["color"],
-                Offset = Table["Material"]["offset"] ==         "Tommy.TomlLazy"    ? Defaults["Offset"]        : Table["Material"]["offset"],
-                Density = Table["Material"]["density"] ==       "Tommy.TomlLazy"    ? Defaults["Density_" + Table["Material"]["type"]]       : Table["Material"]["density"],
-                Lifespan = Table["Material"]["lifespan"] ==     "Tommy.TomlLazy"    ? Defaults["Lifespan"]      : Table["Material"]["lifespan"],
-                Health = Table["Material"]["health"] ==         "Tommy.TomlLazy"    ? Defaults["Health"]        : Table["Material"]["health"],
-                Viscosity = Table["Material"]["viscosity"] ==   "Tommy.TomlLazy"    ? Defaults["Viscosity"]     : Table["Material"]["viscosity"],
-                Softness = Table["Material"]["softness"] ==     "Tommy.TomlLazy"    ? Defaults["Softness"]      : Table["Material"]["softness"]
+                Color = Table["Material"]["color"] ==               "Tommy.TomlLazy"    ? Defaults["Color"]                                     : Table["Material"]["color"],
+                Offset = Table["Material"]["offset"] ==             "Tommy.TomlLazy"    ? Defaults["Offset"]                                    : Table["Material"]["offset"],
+                Density = Table["Material"]["density"] ==           "Tommy.TomlLazy"    ? Defaults["Density_" + Table["Material"]["type"]]      : Table["Material"]["density"],
+                Lifespan = Table["Material"]["lifespan"] ==         "Tommy.TomlLazy"    ? Defaults["Lifespan"]                                  : Table["Material"]["lifespan"],
+                Health = Table["Material"]["health"] ==             "Tommy.TomlLazy"    ? Defaults["Health"]                                    : Table["Material"]["health"],
+                Viscosity = Table["Material"]["viscosity"] ==       "Tommy.TomlLazy"    ? Defaults["Viscosity"]                                 : Table["Material"]["viscosity"],
+                Softness = Table["Material"]["softness"] ==         "Tommy.TomlLazy"    ? Defaults["Softness"]                                  : Table["Material"]["softness"],
             };
 
             // Tags + Reactions
@@ -157,10 +156,6 @@ static partial class Materials {
 
     // Create a new instance of a material
     public static Pixel New(string id) {
-        // if (id == "air") {
-        //     return new Pixel();
-        // }
-
         var M = Index[id];
         var P = new Pixel(id) {
             Color = Canvas.ShiftColor(Canvas.HexColor(M.Color), RNG.Range(-M.Offset, M.Offset)),
@@ -172,21 +167,39 @@ static partial class Materials {
 
     // Liquid Behavior
     public static void TickLiquid(World W, Pixel P, Vector2i Pos) {
-        // Try to move down
-        var V = Index[P.ID].Viscosity;
-        if (RNG.Chance(100 - V) && W.ValidSwap(Pos, Pos + Direction.Down)) { return; }
+        var V = Get(P.ID).Viscosity;
+        var Dir = RNG.CoinFlip() ? Direction.Left : Direction.Right;
+        var Dist = Global.ChunkSize / 5;
+        var OldPos = Pos;
+        var NewPos = OldPos + Dir;
 
-        // Try to move sideways
-        var Dir = Direction.Random(Direction.Horizontal);
-        for (int i = 0; i < 25; i++) {
-            if (RNG.Chance(V)) { return; }
-            if (!W.ValidSwap(Pos, Pos + Dir)) { return; }
+        for (int i = 0; i < Dist; i++) {
+            // Try to move down
+            if (W.ValidSwap(OldPos, OldPos + Direction.Down)) { return; }
+
+            // Chance to stop moving
+            if (RNG.Chance(1)) { return; }
+
+            // Try to move sideways, change direction if blocked
+            if (W.ValidSwap(OldPos, NewPos)) {
+                OldPos = NewPos;
+                NewPos += Dir;
+            } else if (RNG.Chance(100 - V)) {
+                Dir = Direction.FlipH(Dir);
+                NewPos = OldPos + Dir;
+            }
         }
     }
 
     // Gas Behavior
     public static void TickGas(World W, Pixel P, Vector2i Pos) {
         // Try to move upwwards
+        if (RNG.CoinFlip()) {
+            foreach (var Dir in Direction.Shuffled(Direction.Horizontal)) {
+                if (W.ValidSwap(Pos, Pos + Dir)) { return; }
+            }
+        }
+
         var Moves = Direction.Shuffled(Direction.UpperHalf);
         foreach (var Move in Moves) {
             if (RNG.Chance(75) && W.ValidSwap(Pos, Pos + Move)) { return; }
@@ -196,9 +209,10 @@ static partial class Materials {
     // Powder Behavior
     public static void TickPowder(World W, Pixel P, Vector2i Pos) {
         // Try to move down
-        if (/*RNG.Chance(100 - Index[P.ID].Softness) && */W.ValidSwap(Pos, Pos + Direction.Down)) { return; }
+        var S = Index[P.ID].Softness;
+        if (RNG.Chance(100 - S) && W.ValidSwap(Pos, Pos + Direction.Down)) { return; }
 
-        if (RNG.Chance(Index[P.ID].Softness)) {
+        if (RNG.Chance(S)) {
             if (RNG.CoinFlip() && W.ValidSwap(Pos, Pos + Direction.Left)) { return; }
             if (W.ValidSwap(Pos, Pos + Direction.Right)) { return; }
         }
@@ -210,9 +224,9 @@ static partial class Materials {
     }
 
     // Tag checking regex
-    public static bool IsTag(string str) => IsTag().IsMatch(str);
-    public static bool ContainsTag(string str) => ContainsTag().IsMatch(str);
-    public static string ExtractTag(string str) => ContainsTag().Match(str).Value;
+    public static bool IsTag(string str) => IsTag().IsMatch(str);                   // Checks if a string is a [tag] and not a [tag]_substr
+    public static bool ContainsTag(string str) => ContainsTag().IsMatch(str);       // Checks if a string contains a [tag]
+    public static string ExtractTag(string str) => ContainsTag().Match(str).Value;  // Extracts a [tag] from a [tag]_substr string
 
     [GeneratedRegex(@"^\[.*\]$")]
     private static partial Regex IsTag();

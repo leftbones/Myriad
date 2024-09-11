@@ -1,8 +1,8 @@
 [Material]
-name = "sand"
-ui_name = "Sand"
+name = "sand_blue"
+ui_name = "Blue sand"
 type = "powder"
-color = "e6bc5cff"
+color = "4789b5ff"
 offset = 10
 health = 5
 softness = 20

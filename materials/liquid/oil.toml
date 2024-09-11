@@ -1,17 +1,28 @@
 [Material]
-type = "liquid"
 name = "oil"
 ui_name = "Oil"
+type = "liquid"
 color = "573b2a88"
-viscosity = 5
+density = 900
+viscosity = 10
 tags = ["flammable"]
 
-[[Reactions]]
-chance = 5
+[[Reaction]]
+chance = 10
 input = ["oil", "water"]
 output = ["oil", "water_dirty"]
 
-[[Reactions]]
-chance = 1
-input = ["oil", "water"]
+# [[Reaction]]
+# chance = 2
+# input = ["oil", "lava"]
+# output = ["smoke", "fire"]
+
+# [[Reaction]]
+# chance = 30
+# input = ["oil", "fire"]
+# output = ["fire", "fire"]
+
+[[Reaction]]
+chance = 150
+input = ["oil", "water_dirty"]
 output = ["water_dirty", "water_dirty"]

@@ -11,4 +11,6 @@ static class Global {
     public static Vector2 ParticleGravity = new Vector2(0, 0.05f);
 
     public static Color BackgroundColor = new Color(25, 40, 45, 255);
+
+    public static Color[] FireColors = [Color.Red, Color.Orange, Color.Yellow];
 }

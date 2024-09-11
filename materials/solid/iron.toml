@@ -1,7 +1,7 @@
 [Material]
-type = "solid"
 name = "iron"
 ui_name = "Iron"
+type = "solid"
 color = "a19d94ff"
 # texture = "assets/textures/iron.png"
 tags = ["meltable", "rustable", "conductive"]

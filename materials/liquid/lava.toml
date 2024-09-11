@@ -1,11 +1,17 @@
 [Material]
-type = "liquid"
 name = "lava"
 ui_name = "Lava"
+type = "liquid"
 color = "cf102099"
+density = 100
 viscosity = 25
 
+# [[Reaction]]
+# chance = 30
+# input = ["lava", "air"]
+# output = ["lava", "fire"]
+
 [[Reaction]]
-chance = 5
+chance = 100
 input = ["lava", "[meltable]"]
 output = ["lava", "[meltable]_molten"]

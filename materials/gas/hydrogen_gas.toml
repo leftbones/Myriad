@@ -1,7 +1,7 @@
 [Material]
-type = "gas"
 name = "hydrogen_gas"
 ui_name = "Hydrogen"
+type = "gas"
 color = "00ff0022"
 lifespan = 700
 

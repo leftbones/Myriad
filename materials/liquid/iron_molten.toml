@@ -1,6 +1,7 @@
 [Material]
-type = "liquid"
 name = "iron_molten"
 ui_name = "Molten Iron"
+type = "liquid"
 color = "a19d94ff"
 # texture = "assets/textures/iron.png"
+tags = ["hot"]

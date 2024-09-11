@@ -1,6 +1,6 @@
 [Material]
-type = "gas"
 name = "smoke"
 ui_name = "Smoke"
+type = "gas"
 color = "44444466"
-lifespan = 1500
+lifespan = 1000

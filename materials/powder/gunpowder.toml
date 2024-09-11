@@ -1,7 +1,7 @@
 [Material]
-type = "powder"
 name = "gunpowder"
 ui_name = "Gunpowder"
+type = "powder"
 color = "202022ff"
 offset = 25
 softness = 10

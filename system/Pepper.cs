@@ -4,7 +4,7 @@ using Console = Colorful.Console;
 namespace Myriad;
 
 /// <summary>
-/// The in-engine debug console, named "Pepper" after my daughter because the name "Console" is used already in .NET
+/// The in-engine console, named "Pepper" after my daughter because the name "Console" is used already in .NET
 /// Currently only handles .NET console output and can be used for throwing exceptions with an in-game window
 /// Will be used for creating and managing log files in the future
 /// </summary>

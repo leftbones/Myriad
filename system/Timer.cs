@@ -13,6 +13,8 @@ class Timer {
     public double Time { get { return Math.Min(GetTime() - StartTime, Lifetime); } }
     public bool Done { get { return GetTime() - StartTime >= Lifetime; } }
 
+    public int TimesFired { get; private set; }
+
     public Timer(double lifetime, Action action, bool start=true, bool repeat=false, bool fire=false) {
         Lifetime = lifetime;
         Action = action;
@@ -36,6 +38,7 @@ class Timer {
 
         if (Done) {
             Fire();
+            TimesFired++;
         }
     }
 

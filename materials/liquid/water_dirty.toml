@@ -1,14 +1,20 @@
 [Material]
-type = "liquid"
 name = "water_dirty"
 ui_name = "Dirty Water"
+type = "liquid"
+density = 950
 color = "35607b88"
 tags = ["corrodible"]
 
 [[Reaction]]
-chance = 1
+chance = 250
+input = ["water_dirty"]
+output = ["water_dirty", "water_dirty"]
+
+[[Reaction]]
+chance = 6
 input = ["water_dirty", "lava"]
-output = ["steam", "stone"]
+output = ["smoke", "stone"]
 
 [[Reaction]]
 chance = 1

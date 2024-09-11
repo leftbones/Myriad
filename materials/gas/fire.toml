@@ -3,7 +3,14 @@ type = "gas"
 name = "fire"
 ui_name = "Fire"
 color = "EB982AFF"
-lifespan = 20
+# density = 0
+lifespan = 50
+expiration = [5, "smoke"]
+
+[[Reaction]]
+chance = 1
+input = ["fire", "[flammable]"]
+output = ["fire", "fire"]
 
 [[Reaction]]
 chance = 5

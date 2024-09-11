@@ -1,12 +1,11 @@
 using System.Numerics;
-using Calcium;
 using Raylib_cs;
 
 namespace Myriad;
 
 class Particle {
-    public string PixelID { get; private set; }
-    // public Pixel StoredPixel { get; private set; }   // TODO: This
+    public Pixel ContactPixel { get; set; }
+    public Pixel ExpirePixel { get; set; }
     public Vector2 Position { get; set; }
     public Color Color { get; set; }
     public int Lifetime { get; set; }
@@ -15,14 +14,17 @@ class Particle {
     public bool Empty { get; set; }
 
     public Vector2 Velocity { get; set; }
+    public Vector2 GravityDir { get; set; }
 
-    public Particle(string pixel_id, Vector2 position, Color color, int lifespan=-1, int grace=0, bool empty=false) {
-        PixelID = pixel_id;
+    public Particle(Vector2 position, Color color, Pixel on_contact=null, Pixel on_expire=null, int lifespan=-1, int grace=0, bool empty=false) {
+        ContactPixel = on_contact ?? Materials.New("air");
+        ExpirePixel = on_expire ?? Materials.New("air");
         Position = position;
         Color = color;
         Lifespan = lifespan;
         Grace = grace;
         Empty = empty;
+        GravityDir = new Vector2(0, 1);
     }
 
     public void Tick() {

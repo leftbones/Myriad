@@ -1,7 +1,7 @@
 [Material]
-type = "gas"
 name = "steam"
 ui_name = "Steam"
+type = "gas"
 color = "8499ba55"
 lifespan = 1000
 tags = ["wet"]

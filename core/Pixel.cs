@@ -8,8 +8,8 @@ namespace Myriad;
 class Pixel {
     public string ID { get; private set; }
     public Color Color { get; set; }            = Color.Magenta;
-    public bool Sleeping { get; set; }          = false;
-    public bool Updated { get; set; }           = false;
+    public bool Sleeping { get; set; }          = false;            // Unused
+    public bool Updated { get; set; }           = true;
     public int Lifetime { get; set; }           = 0;
     public int Lifespan { get; set; }           = -1;
     public int Health { get; set; }             = -1;

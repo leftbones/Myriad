@@ -1,11 +1,11 @@
 [Material]
-type = "liquid"
 name = "water"
 ui_name = "Water"
+type = "liquid"
 color = "0197f477"
 
 [[Reaction]]
-chance = 1
+chance = 6
 input = ["water", "lava"]
 output = ["steam", "stone"]
 
@@ -15,6 +15,11 @@ input = ["water", "[rustable]"]
 output = ["water", "[rustable]_rust"]
 
 [[Reaction]]
-chance = 5
+chance = 50
 input = ["water", "acid"]
 output = ["water", "water"]
+
+[[Reaction]]
+chance = 1
+input = ["water", "[meltable]_molten"]
+output = ["steam", "[meltable]_molten"]
