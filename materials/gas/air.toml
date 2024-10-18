@@ -1,5 +1,5 @@
 [Material]
 name = "air"
 ui_name = "Air"
-type = "solid"
+type = "gas"
 density = 0

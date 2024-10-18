@@ -1,0 +1,14 @@
+[Material]
+name = "wood"
+ui_name = "Wood"
+type = "solid"
+color = "895129ff"
+offset = 15
+health = 25
+# texture = "assets/textures/wood.png"
+tags = ["flammable", "corrodible"]
+
+[[Reaction]]
+chance = 10
+reactant = "fire"
+products = ["<burning>", "smoke"]

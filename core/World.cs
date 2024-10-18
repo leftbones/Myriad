@@ -14,6 +14,7 @@ class World {
     public List<Particle> Particles { get; private set; }
 
     public int Tick { get; private set; }
+    public int TickInterval { get; set; }
     public int PixelCount => Pixels.Where(P => P.ID != "air").Count();  // THIS IS VERY SLOW
     public int ParticleCount => Particles.Count;    // THIS IS NOT MUCH BETTER
 
@@ -93,18 +94,18 @@ class World {
                     continue;
                 }
 
-                P.Damage(1);
-                P.Stain(new Color(25, 25, 25, 255), 0.1f);
-
-                // TODO: Create particles when a powder or liquid is damaged but not destroyed
                 // TODO: Reduce damage done by the explosion further away from the center
+                P.Damage(1);
 
-                var M = Materials.Index[P.ID];
-                if (M.Type == "powder" || M.Type == "liquid") {
-                    var Particle = new Particle(PT.ToVec2(), P.Color, P);
-                    Particle.ApplyForce(new Vector2(RNG.Roll(1.5f) * RNG.Range(-1, 1), RNG.Roll(2.5f) * -1));
-                    Particles.Add(Particle);
-                    Set(PT, Materials.New("air"));
+                if (P.Health > 0 || P.Health == -1) { 
+                    var M = Materials.Index[P.ID];
+                    if (M.Type == "powder" || M.Type == "liquid") {
+                        P.Stain(new Color(25, 25, 25, 255), 0.1f);
+                        var Particle = new Particle(PT.ToVec2(), P.Color, P);
+                        Particle.ApplyForce(new Vector2(RNG.Roll(2.5f) * RNG.Range(-1, 1), RNG.Roll(3.5f) * -1));
+                        Particles.Add(Particle);
+                        Set(PT, Materials.New("air"));
+                    }
                 }
             }
         }
@@ -193,6 +194,8 @@ class World {
         var M1 = Materials.Get(P1.ID);
         var M2 = Materials.Get(P2.ID);
 
+        if (M1.Type == "gas" && M2.Type == "solid") { return false; }
+
         if (M1.Density > 0) {
             if (M1.Density > M2.Density) { return UnsafeSwap(pos1, pos2); }
         } else {
@@ -202,17 +205,47 @@ class World {
         return false;
     }
 
-    // Put a Pixel to sleep (unused)
-    // public void SleepAt(int x, int y) { SleepAt(new Vector2i(x, y)); }
-    // public void SleepAt(Vector2i pos) {
-    //     Get(pos).Sleeping = true;
-    // }
 
-    // Wake a Pixel (unused)
-    // public void WakeAt(int x, int y) { WakeAt(new Vector2i(x, y)); }
-    // public void WakeAt(Vector2i pos) {
-    //     Get(pos).Sleeping = false;
-    // }
+    // Try to do material reactions
+    public bool CanReact(Material M, Vector2i Pos, Vector2i Dir) {
+        if (InBounds(Pos + Dir)) {
+            // Reaction with another `pixel_id`
+            var P = Get(Pos);
+            var NP = Get(Pos + Dir);
+
+            foreach (var R in M.Reactions.Where(R => R.Reactant == NP.ID)) {
+                if (RNG.Odds(R.Chance)) {
+                    // Pixel
+                    if (Materials.IsStatus(R.Products.Item1)) {
+                        switch (R.Products.Item1) {
+                            case "<burning>":
+                                P.Burning = true;
+                                break;
+                        }
+                    } else {
+                        Set(Pos, Materials.New(R.Products.Item1));
+                    }
+
+                    // Neighbor
+                    if (Materials.IsStatus(R.Products.Item2)) {
+                        switch (R.Products.Item2) {
+                            case "<burning>":
+                                NP.Burning = true;
+                                break;
+                        }
+                    } else {
+                        Set(Pos + Dir, Materials.New(R.Products.Item2));
+                    }
+
+                    return true;
+                } else {
+                    WakeChunk(Pos);
+                }
+            }
+        }
+
+        return false;
+    }
 
     // Performed immediately before the main Update method
     public void UpdateStart() {
@@ -247,10 +280,6 @@ class World {
                 }
             }
         }
-
-        // Add all Pixels from the Engine's PixelBuffer and then clear it
-        foreach (var P in Engine.PixelBuffer) { Set(P.Key, P.Value); }
-        Engine.PixelBuffer.Clear();
 
         // Update all Particles, turning them into Pixels if they collide with an existing Pixel
         for (int i = Particles.Count - 1; i >= 0; i--) {
@@ -306,6 +335,8 @@ class World {
 
     // Main update method
     public void Update() {
+        TickInterval++;
+
         UpdateStart();
 
         // Update each Pixel in the World
@@ -323,37 +354,23 @@ class World {
 
     // Update in multiple threads
     public async void ThreadedUpdate() {
-        // FIXME: Currently unsure if this method is any better than the one below, still having issues with some pixels not updating properly
-        // This bug is exclusive to multithreading, it doesn't happen at all when running on a single thread
-        // It also still occurs even if I lock the Pixel array when processing a chunk, which is very strange
-        // This could almost certainly be solved by using SemaphoreSlim, but I'm not sure how to implement it properly
-        var ChunkGroups = Chunks.GroupBy(C => C.ThreadOrder).OrderBy(G => G.Key);
-        var TaskGroups = new List<List<Task>>();
+        var MaxParallel = 12;
+        var ChunkGroups = Chunks.GroupBy(C => C.ThreadOrder).OrderBy(G => G.Key); // NOTE: Ordering by the value of ThreadOrder might be pointless
 
-        foreach (var CG in ChunkGroups) {
-            var Tasks = new List<Task>();
-            foreach (var C in CG) {
-                Tasks.Add(Task.Run(() => {
-                    ProcessChunk(C);
-                    C.Step();
-                }));
-            }
+        using var Semaphore = new SemaphoreSlim(MaxParallel);
+        foreach (var Group in ChunkGroups) {
+            var Tasks = Group.Select(async Chunk => {
+                await Semaphore.WaitAsync();
+                try {
+                    ProcessChunk(Chunk);
+                    Chunk.Step();
+                } finally {
+                    Semaphore.Release();
+                }
+            }).ToList();
 
-            await RunChunkTasks(Tasks);
+            await Task.WhenAll(Tasks);
         }
-
-        // var ChunkGroups = Chunks.GroupBy(C => C.ThreadOrder).OrderBy(G => G.Key); // NOTE: Ordering by the value of ThreadOrder might be pointless
-        // foreach (var Group in ChunkGroups) {
-        //     var Tasks = Group.Select(Chunk => Task.Run(() => {
-        //         ProcessChunk(Chunk);
-        //         Chunk.Step();
-        //     })).ToList();
-        //     await Task.WhenAll(Tasks);
-        // }
-    }
-
-    public async Task RunChunkTasks(List<Task> tasks) {
-        await Task.WhenAll(tasks);
     }
 
     // Performed immediately after the main Update method
@@ -384,6 +401,30 @@ class World {
 
                 P.Updated = true;
 
+                // Status Conditions
+                if (P.Burning) {
+                    if (P.BurnTimer >= P.TimeToBurn) {
+                        Set(Pos, Materials.New("fire"));
+                        continue;
+                    } else {
+                        P.BurnTimer++;
+
+                        if (RNG.Chance(5)) {
+                            foreach (var Dir in Direction.Shuffled(Direction.Full)) {
+                                if (InBounds(Pos + Dir)) {
+                                    var NP = Get(Pos + Dir);
+                                    if (Materials.HasTag(NP.ID, "flammable") && !NP.Burning && RNG.Odds(10)) {
+                                        Set(Pos + Dir, Materials.New("fire"));
+                                        break;
+                                    }
+                                }
+                            }
+                        } else {
+                            WakeChunk(Pos);
+                        }
+                    }
+                }
+
                 // Behavior
                 switch (M.Type) {
                     case "solid":
@@ -404,77 +445,22 @@ class World {
             }
         }
 
-        // Reactions + Interactions
+        // Reactions + Interactions (NOTE: What did I mean by "Interactions"? I can't remember and I can't figure it out.)
         for (int y = Y2; y >= Y1; y--) {
             for (int x = IET ? X1 : X2; IET ? x <= X2 : x >= X1; x += IET ? 1 : -1) {
                 var P = Get(x, y);
+                if (!P.Updated) { continue; } // Only attempt reactions on Pixels that have been updated this tick
+
                 var M = Materials.Index[P.ID];
                 var Pos = new Vector2i(x, y);
 
-                var Dir = Direction.Random(Direction.Cardinal);
-                if (InBounds(Pos + Dir)) {
-                    // --- BEGIN NEW ----------------------------------------------------------------
-                    foreach (var R in M.Reactions) {
-                        var O1 = R.Output.Item1;
-                        var O2 = R.Output.Item2;
-
-                        var NP = Get(Pos + Dir);
-                        var M2 = Materials.Get(NP.ID);
-
-                        // var StoredMat = "";
-                        var StoredTag = "";
-
-                        // Input
-                        if (R.Input.Item2.StartsWith('[')) {
-                            if (R.Input.Item2.EndsWith(']')) {
-                                O1 = R.Input.Item2[1..^1];
-                                StoredTag = R.Input.Item2;
-                            } else {
-                                O1 = Materials.ExtractTag(R.Input.Item2)[1..^1];
-                            }
-                        } else {
-                            O1 = R.Input.Item2;
+                // Attempt reactions in random directions, with a 25% chance to skip
+                if (RNG.Chance(75)) {
+                    foreach (var Dir in Direction.Shuffled(Direction.Cardinal)) {
+                        if (CanReact(M, Pos, Dir)) {
+                            break;
                         }
-
-                        if (O1 != M2.ID && !M2.Tags.Contains(O1)) {
-                            continue;
-                        }
-
-                        // Pepper.Log($"Reaction! {M.ID} + {M2.ID} -> {O1} + {O2}", LogType.Debug);
-
-                        // Output
-
                     }
-                    // --- END NEW ----------------------------------------------------------------
-
-                    // Reaction with another `pixel_id`
-                    // var NP = Get(Pos + Dir);
-                    // foreach (var R in M.Reactions.Where(R => R.Input.Item2 == NP.ID)) {
-                    //     if (RNG.Odds(R.Chance)) {
-                    //         Set(Pos, Materials.New(R.Output.Item1));
-                    //         Set(Pos + Dir, Materials.New(R.Output.Item2));
-                    //         continue;
-                    //     } else {
-                    //         WakeChunk(Pos);
-                    //         continue;
-                    //     }
-                    // }
-
-                    // Reaction with all pixels with a certain `[tag]`
-                    // var NM = Materials.Get(NP.ID);
-                    // foreach (var R in M.Reactions) {
-                    //     var Tag = R.Input.Item2[1..^1];
-                    //     if (NM.Tags.Any(T => T == Tag)) {
-                    //         if (RNG.Odds(R.Chance)) {
-                    //             Set(Pos, Materials.New(R.Output.Item1));
-                    //             Set(Pos + Dir, Materials.New(R.Output.Item2));
-                    //             continue;
-                    //         } else {
-                    //             WakeChunk(Pos);
-                    //             continue;
-                    //         }
-                    //     }
-                    // }
                 }
             }
         }
@@ -490,7 +476,7 @@ class World {
                 var P = Get(x, y);
                 if (P.ID != "air") {
                     var Col = P.Color;
-                    if (P.ID == "fire") { Col = Global.FireColors[RNG.Range(0, 2)]; }
+                    if (P.ID == "fire" || P.Burning) { Col = Global.FireColors[RNG.Range(0, 2)]; }
                     ImageDrawPixel(ref _buffer, x, y, Col);
                 }
             }

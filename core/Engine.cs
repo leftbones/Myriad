@@ -1,4 +1,4 @@
-using System.Numerics;
+using System.Diagnostics;
 using Calcium;
 using ImGuiNET;
 using Raylib_cs;
@@ -10,8 +10,10 @@ namespace Myriad;
 
 static class Engine {
     public static World World { get; private set; }
-    public static int TicksPerSecond = 200;
-    public static double TickRateMultiplier = 1.0;
+    public static int TicksPerSecond = 150;
+    public static int MaxTicksPerFrame = 2;
+    public static double TickInterval = 1000.0 / TicksPerSecond;
+    public static int MaxConcurrency = Environment.ProcessorCount;
 
     public static Dictionary<Vector2i, Pixel> PixelBuffer = [];
 
@@ -22,11 +24,15 @@ static class Engine {
                                             (int)Math.Round((double)GetMouseY() / Global.PixelScale));
 
     public static List<Timer> Timers = [];
-    private static Timer _tickTimer;
 
     private static int _storedSpeed;
     private static bool _pauseNextTick;
     private static bool _halted;
+
+    private static float _tpsUpdateTimer;
+    private static int _tpsTickCounter;
+    private static int _actualTPS;
+
 
     // Initialize all engine components
     public static void Init() {
@@ -35,20 +41,20 @@ static class Engine {
         Canvas.Init();
 
         World = new World(Config.Resolution.X / Global.PixelScale, Config.Resolution.Y / Global.PixelScale);
+
+        if (Config.Multithreading) {
+            Pepper.Warn($"Max concurrency set to {MaxConcurrency}", LogType.Engine);
+        }
         Pepper.Log("Engine initialized", LogType.System);
 
         if (Config.DebugMode) {
             Debbie.Init();
         }
-
-        // Simulation Timer
-        _tickTimer = new Timer(1.0 / (TicksPerSecond * TickRateMultiplier), World.Update, true, true, true);
-        Timers.Add(_tickTimer);
     }
 
+    // Set the TPS of the Engine, minimum allowed is 1
     public static void SetTicksPerSecond(int tps) {
-        TicksPerSecond = tps;
-        _tickTimer.Lifetime = 1.0 / (TicksPerSecond * TickRateMultiplier);
+        TicksPerSecond = Math.Max(tps, 1);
     }
 
     // Add a new Timer
@@ -109,9 +115,10 @@ static class Engine {
         if (!Config.DebugMode || !ImGui.GetIO().WantCaptureMouse) {
             // Paint
             if (IsMouseButtonDown(MouseButton.Left) && World.InBounds(MousePos)) {
+                var BrushType = Materials.Index[Canvas.BrushMaterial].Type == "solid" ? 1 : 50;
                 for (int x = -Canvas.BrushSize; x <= Canvas.BrushSize; x++) {
                     for (int y = -Canvas.BrushSize; y <= Canvas.BrushSize; y++) {
-                        if (RNG.Odds(50) && World.InBounds(MousePos + new Vector2i(x, y))) {
+                        if (RNG.Odds(BrushType) && World.InBounds(MousePos + new Vector2i(x, y))) {
                             if (Canvas.PaintOnTop || World.IsEmpty(MousePos + new Vector2i(x, y))) {
                                 var P = Materials.New(Canvas.BrushMaterial);
                                 PixelBuffer[MousePos + new Vector2i(x, y)] = P;
@@ -135,16 +142,36 @@ static class Engine {
         }
     }
 
+    // Tick the World
+    public static void Tick() {
+        _tpsTickCounter++;
+        World.Update();
+    }
+
     // Update all Engine components
     public static void Update() {
-        if (_halted) { return; }
+        // Update the TPS counter -- FIXME: Seemingly accurate except when catching up from being behind, it exceeds the target TPS
+        if (_tpsUpdateTimer >= 1.0) {
+            _actualTPS = _tpsTickCounter;
+            _tpsTickCounter = 0;
+            _tpsUpdateTimer = 0;
+        }
 
         Input();
 
+        // Add all Pixels from the Engine's PixelBuffer and then clear it
+        foreach (var P in PixelBuffer) { World.Set(P.Key, P.Value); }
+        PixelBuffer.Clear();
+
+        if (_halted) { return; }
+
         // Update Timers
+        var DT = GetFrameTime();
+        _tpsUpdateTimer += DT;
+
         for (int i = Timers.Count - 1; i >= 0; i--) {
             var T = Timers[i];
-            T.Tick();
+            T.Tick(DT);
 
             if (T.Done && !T.Repeat) {
                 Timers.RemoveAt(i);
@@ -172,6 +199,12 @@ static class Engine {
             var FPSText = $"FPS: {GetFPS()}";
             var Offset = MeasureTextEx(Canvas.DefaultFont, FPSText, Canvas.DefaultFontSize, Canvas.DefaultFontSpacing);
             Canvas.DrawText(FPSText, Config.Resolution.X - (int)Offset.X - 10, 10);
+        }
+
+        if (Config.ShowTPS) {
+            var TPSText = $"TPS: {_actualTPS}";
+            var Offset = MeasureTextEx(Canvas.DefaultFont, TPSText, Canvas.DefaultFontSize, Canvas.DefaultFontSpacing);
+            Canvas.DrawText(TPSText, Config.Resolution.X - (int)Offset.X - 10, 32);
         }
     }
 

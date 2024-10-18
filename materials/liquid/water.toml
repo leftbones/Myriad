@@ -5,21 +5,31 @@ type = "liquid"
 color = "0197f477"
 
 [[Reaction]]
-chance = 6
-input = ["water", "lava"]
-output = ["steam", "stone"]
-
-[[Reaction]]
-chance = 1
-input = ["water", "[rustable]"]
-output = ["water", "[rustable]_rust"]
+chance = 100
+reactant = "oil"
+products = ["water_dirty", "water_dirty"]
 
 [[Reaction]]
 chance = 50
-input = ["water", "acid"]
-output = ["water", "water"]
+reactant = "water_dirty"
+products = ["water", "water"]
 
-[[Reaction]]
-chance = 1
-input = ["water", "[meltable]_molten"]
-output = ["steam", "[meltable]_molten"]
+# [[Reaction]]
+# chance = 6
+# input = ["water", "lava"]
+# output = ["steam", "stone"]
+
+# [[Reaction]]
+# chance = 1
+# input = ["water", "[rustable]"]
+# output = ["water", "[rustable]_rust"]
+
+# [[Reaction]]
+# chance = 50
+# input = ["water", "acid"]
+# output = ["water", "water"]
+
+# [[Reaction]]
+# chance = 1
+# input = ["water", "[meltable]_molten"]
+# output = ["steam", "[meltable]_molten"]

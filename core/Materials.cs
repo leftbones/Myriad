@@ -20,13 +20,13 @@ class Material() {
     public int Softness { get; set; }               // Spread rate of powders
 
     public List<string> Tags { get; set; } = [];
-    public List<Reaction> Reactions { get; set; }= [];
+    public List<Reaction> Reactions { get; set; } = [];
 }
 
 class Reaction() {
     public int Chance { get; set; }
-    public (string, string) Input { get; set; }
-    public (string, string) Output { get; set; }
+    public string Reactant { get; set; }            // Material that causes the reaction
+    public (string, string) Products { get; set; }  // Materials created by the reaction
 }
 
 static partial class Materials {
@@ -105,8 +105,8 @@ static partial class Materials {
                 foreach (TomlNode Node in Table["Reaction"]) {
                     var R = new Reaction() {
                         Chance = Node["chance"],
-                        Input = (Node["input"][0], Node["input"][1]),
-                        Output = (Node["output"][0], Node["output"][1])
+                        Reactant = Node["reactant"],
+                        Products = (Node["products"][0], Node["products"][1])
                     };
                     Reactions.Add(R);
                 }
@@ -193,17 +193,50 @@ static partial class Materials {
 
     // Gas Behavior
     public static void TickGas(World W, Pixel P, Vector2i Pos) {
-        // Try to move upwwards
-        if (RNG.CoinFlip()) {
+        // Small chance to move horizontally
+        if (RNG.Chance(2)) {
             foreach (var Dir in Direction.Shuffled(Direction.Horizontal)) {
                 if (W.ValidSwap(Pos, Pos + Dir)) { return; }
             }
         }
 
-        var Moves = Direction.Shuffled(Direction.UpperHalf);
-        foreach (var Move in Moves) {
-            if (RNG.Chance(75) && W.ValidSwap(Pos, Pos + Move)) { return; }
+        // Try to move based on density
+        var Density = Index[P.ID].Density;
+
+        // Zero density, try to move randomly
+        if (Density == 0) {
+            foreach (var Dir in Direction.Shuffled(Direction.Full)) {
+                if (W.ValidSwap(Pos, Pos + Dir)) { return; } else if (RNG.Chance(25)) { return; }
+            }
         }
+
+        // Positive density, try to move downwards
+        if (Density > 0) {
+            foreach (var Dir in Direction.Shuffled(Direction.LowerHalf)) {
+                if (W.ValidSwap(Pos, Pos + Dir)) { return; } else if (RNG.Chance(25)) { return; }
+            }
+        }
+
+        // Negative density, try to move upwards
+        if (Density < 0) {
+            foreach (var Dir in Direction.Shuffled(Direction.UpperHalf)) {
+                if (W.ValidSwap(Pos, Pos + Dir)) { return; } else if (RNG.Chance(25)) { return; }
+            }
+        }
+
+
+
+        // Old behavior
+        // if (RNG.CoinFlip()) {
+        //     foreach (var Dir in Direction.Shuffled(Direction.Horizontal)) {
+        //         if (W.ValidSwap(Pos, Pos + Dir)) { return; }
+        //     }
+        // }
+
+        // var Moves = Direction.Shuffled(Direction.UpperHalf);
+        // foreach (var Move in Moves) {
+        //     if (RNG.Chance(75) && W.ValidSwap(Pos, Pos + Move)) { return; }
+        // }
     }
 
     // Powder Behavior
@@ -228,9 +261,14 @@ static partial class Materials {
     public static bool ContainsTag(string str) => ContainsTag().IsMatch(str);       // Checks if a string contains a [tag]
     public static string ExtractTag(string str) => ContainsTag().Match(str).Value;  // Extracts a [tag] from a [tag]_substr string
 
+    public static bool IsStatus(string str) => IsStatus().IsMatch(str);             // Check if a string is a <status>
+
     [GeneratedRegex(@"^\[.*\]$")]
     private static partial Regex IsTag();
 
     [GeneratedRegex(@"\[.*\]")]
     private static partial Regex ContainsTag();
+
+    [GeneratedRegex(@"^\<.*\>$")]
+    private static partial Regex IsStatus();
 }

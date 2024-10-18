@@ -45,12 +45,18 @@ static class Pepper {
     public static void Yell(string message, LogType type=LogType.Debug, LogLevel level=LogLevel.Fatal) { Throw(message, type, level); }
     public static void Throw(string message, LogType type=LogType.Debug, LogLevel level=LogLevel.Fatal) {
         Log(message, type, level);
-        // Engine.Halt();
+        Engine.Halt();
+    }
+
+    // Log a warning to the console as well as the current log file
+    public static void Scold(string message, LogType type) { Warn(message, type); }
+    public static void Warn(string message, LogType type) {
+        Log(message, type, LogLevel.Warning);
     }
 
     // Log a message to the console as well as the current log file
-    public static void Sing(string message, LogType type=LogType.Other, LogLevel level=LogLevel.Message) { Log(message, type, level); }
-    public static void Log(string message, LogType type=LogType.Other, LogLevel level=LogLevel.Message) {
+    public static void Sing(string message, LogType type=LogType.Debug, LogLevel level=LogLevel.Message) { Log(message, type, level); }
+    public static void Log(string message, LogType type=LogType.Debug, LogLevel level=LogLevel.Message) {
         if (level == LogLevel.Message && !LogMessage) { return; }
         else if (level == LogLevel.Warning && !LogWarning) { return; }
         else if (level == LogLevel.Error && !LogError) { return; }

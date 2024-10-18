@@ -10,6 +10,7 @@ static class Config {
 
     // Simulation Settings
     public static bool ShowFPS = true;
+    public static bool ShowTPS = true;
     public static bool Multithreading = true;
 
     // Debug Settings
@@ -22,7 +23,7 @@ static class Config {
         Pepper.Log("Configuration loaded", LogType.System);
 
         if (Multithreading) {
-            Pepper.Log("Experimental multithreading is enabled!", LogType.System, LogLevel.Warning);
+            Pepper.Warn("Experimental multithreading is enabled!", LogType.Engine);
         }
     }
 }

@@ -4,7 +4,7 @@ ui_name = "Acid"
 type = "liquid"
 color = "00ff0088"
 
-[[Reaction]]
-chance = 50
-input = ["acid", "[corrodible]"]
-output = ["acid", "hydrogen_gas"]
+# [[Reaction]]
+# chance = 50
+# input = ["acid", "[corrodible]"]
+# output = ["acid", "hydrogen_gas"]

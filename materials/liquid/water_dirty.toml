@@ -6,17 +6,12 @@ density = 950
 color = "35607b88"
 tags = ["corrodible"]
 
-[[Reaction]]
-chance = 250
-input = ["water_dirty"]
-output = ["water_dirty", "water_dirty"]
+# [[Reaction]]
+# chance = 6
+# input = ["water_dirty", "lava"]
+# output = ["smoke", "stone"]
 
-[[Reaction]]
-chance = 6
-input = ["water_dirty", "lava"]
-output = ["smoke", "stone"]
-
-[[Reaction]]
-chance = 1
-input = ["water_dirty", "[rustable]"]
-output = ["water_dirty", "[rustable]_rust"]
+# [[Reaction]]
+# chance = 1
+# input = ["water_dirty", "[rustable]"]
+# output = ["water_dirty", "[rustable]_rust"]

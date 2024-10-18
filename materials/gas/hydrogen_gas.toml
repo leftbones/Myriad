@@ -3,9 +3,10 @@ name = "hydrogen_gas"
 ui_name = "Hydrogen"
 type = "gas"
 color = "00ff0022"
+density = 1000
 lifespan = 700
 
-[[Reaction]]
-chance = 1
-input = ["hydrogen_gas", "[corrodible]"]
-output = ["air", "hydrogen_gas"]
+# [[Reaction]]
+# chance = 1
+# input = ["hydrogen_gas", "[corrodible]"]
+# output = ["air", "hydrogen_gas"]

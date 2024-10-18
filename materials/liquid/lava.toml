@@ -11,7 +11,7 @@ viscosity = 25
 # input = ["lava", "air"]
 # output = ["lava", "fire"]
 
-[[Reaction]]
-chance = 100
-input = ["lava", "[meltable]"]
-output = ["lava", "[meltable]_molten"]
+# [[Reaction]]
+# chance = 100
+# input = ["lava", "[meltable]"]
+# output = ["lava", "[meltable]_molten"]

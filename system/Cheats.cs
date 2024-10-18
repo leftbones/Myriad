@@ -13,12 +13,17 @@ static class Cheats {
     }
 
     public static void NukeWorld(World world) {
+        var NukePoints = new List<Vector2i>();
         for (int x = 0; x < world.Size.X; x++) {
             for (int y = 0; y < world.Size.Y; y++) {
-                if (!world.IsEmpty(x, y) && RNG.Chance(1)) {
-                    world.MakeExplosion(new Vector2i(x, y), 10);
+                if (RNG.Chance(1) && !world.IsEmpty(x, y)) {
+                    NukePoints.Add(new Vector2i(x, y));
                 }
             }
+        }
+
+        foreach (var Point in NukePoints) {
+            world.MakeExplosion(Point, 10);
         }
     }
 }

@@ -16,7 +16,7 @@ class Particle {
     public Vector2 Velocity { get; set; }
     public Vector2 GravityDir { get; set; }
 
-    public Particle(Vector2 position, Color color, Pixel on_contact=null, Pixel on_expire=null, int lifespan=-1, int grace=0, bool empty=false) {
+    public Particle(Vector2 position, Color color, Pixel on_contact=null, Pixel on_expire=null, int lifespan=-1, int grace=10, bool empty=false) {
         ContactPixel = on_contact ?? Materials.New("air");
         ExpirePixel = on_expire ?? Materials.New("air");
         Position = position;
