@@ -55,6 +55,7 @@ static class Engine {
     // Set the TPS of the Engine, minimum allowed is 1
     public static void SetTicksPerSecond(int tps) {
         TicksPerSecond = Math.Max(tps, 1);
+        TickInterval = 1000.0 / TicksPerSecond;
     }
 
     // Add a new Timer

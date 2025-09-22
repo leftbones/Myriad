@@ -55,7 +55,7 @@ static class Debbie {
         _loadedMaterial = Materials.Index[Materials.ByID[_materialInspectorIndex]];
         _loadedMaterialPath = $"materials/{_loadedMaterial.Type}/{_loadedMaterial.ID}.toml";
         _loadedMaterialData = File.OpenText(_loadedMaterialPath).ReadToEnd();
-        // if (Config.VerboseLogging) { Pepper.Log($"Loaded material data file at '{_loadedMaterialPath}'", LogType.System); }
+        if (Config.VerboseLogging) { Pepper.Log($"Loaded material data file at '{_loadedMaterialPath}'", LogType.System); }
     }
 
     public static void ApplyCommand(string command=null) {
@@ -77,6 +77,7 @@ static class Debbie {
             _lastCommand = _commandInput;
             _commandInput = "";
         } else {
+            ShowCommandPrompt = false;
             Pepper.Log($"Command '{_commandInput}' not found", LogType.System, LogLevel.Warning);
         }
     }

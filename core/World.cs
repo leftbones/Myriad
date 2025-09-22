@@ -15,8 +15,8 @@ class World {
 
     public int Tick { get; private set; }
     public int TickInterval { get; set; }
-    public int PixelCount => Pixels.Where(P => P.ID != "air").Count();  // THIS IS VERY SLOW
-    public int ParticleCount => Particles.Count;    // THIS IS NOT MUCH BETTER
+    public int PixelCount => Pixels.Where(P => P.ID != "air").Count();  // FIXME: THIS IS VERY SLOW
+    public int ParticleCount => Particles.Count;    					// FIXME: THIS IS ALSO VERY SLOW
 
     public bool ProcessDone { get; set; }
 
@@ -97,7 +97,7 @@ class World {
                 // TODO: Reduce damage done by the explosion further away from the center
                 P.Damage(1);
 
-                if (P.Health > 0 || P.Health == -1) { 
+                if (P.Health > 0 || P.Health == -1) {
                     var M = Materials.Index[P.ID];
                     if (M.Type == "powder" || M.Type == "liquid") {
                         P.Stain(new Color(25, 25, 25, 255), 0.1f);
@@ -353,23 +353,25 @@ class World {
     }
 
     // Update in multiple threads
-    public async void ThreadedUpdate() {
-        var MaxParallel = 12;
-        var ChunkGroups = Chunks.GroupBy(C => C.ThreadOrder).OrderBy(G => G.Key); // NOTE: Ordering by the value of ThreadOrder might be pointless
+    public void ThreadedUpdate() {
+        var ChunkGroups = Chunks.GroupBy(C => C.ThreadOrder).OrderBy(G => G.Key);
 
-        using var Semaphore = new SemaphoreSlim(MaxParallel);
         foreach (var Group in ChunkGroups) {
-            var Tasks = Group.Select(async Chunk => {
-                await Semaphore.WaitAsync();
-                try {
-                    ProcessChunk(Chunk);
-                    Chunk.Step();
-                } finally {
-                    Semaphore.Release();
-                }
-            }).ToList();
+            var ChunksArray = Group.ToArray();
+            var threads = new Thread[ChunksArray.Length];
 
-            await Task.WhenAll(Tasks);
+            for (int i = 0; i < ChunksArray.Length; i++) {
+                var chunk = ChunksArray[i];
+                threads[i] = new Thread(() => {
+                    ProcessChunk(chunk);
+                    chunk.Step();
+                });
+                threads[i].Start();
+            }
+
+            for (int i = 0; i < threads.Length; i++) {
+                threads[i].Join();
+            }
         }
     }
 

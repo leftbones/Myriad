@@ -165,6 +165,11 @@ static partial class Materials {
         return P;
     }
 
+    // Universal Behavior (New)
+    public static void TickUniversal(World W, Pixel P, Vector2i Pos) {
+
+    }
+
     // Liquid Behavior
     public static void TickLiquid(World W, Pixel P, Vector2i Pos) {
         var V = Get(P.ID).Viscosity;
