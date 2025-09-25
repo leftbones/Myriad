@@ -1,0 +1,8 @@
+[Material]
+name = "snow"
+ui_name = "Snow"
+type = "powder"
+color = "ffffffff"
+offset = 10
+health = 1
+softness = 75

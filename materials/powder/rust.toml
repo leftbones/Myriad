@@ -1,0 +1,8 @@
+[Material]
+name = "rust"
+ui_name = "Rust"
+type = "powder"
+color = "b7410eff"
+offset = 20
+health = 5
+softness = 25
