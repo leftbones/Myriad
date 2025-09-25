@@ -1,13 +1,14 @@
 using System.Text.RegularExpressions;
 using Tommy;
 using Calcium;
+using Myriad.Helper;
 
-namespace Myriad;
+namespace Myriad.Core;
 
 // TODO:
 // - Add some sort of handler for when we try to create a material but the data isn't found
 
-class Material() {
+internal class Material() {
     public string Type { get; set; }                // Solid, Liquid, Gas, Powder
     public string ID { get; set; }                  // Unique identifier
     public string Name { get; set; }                // UI display name
@@ -23,13 +24,13 @@ class Material() {
     public List<Reaction> Reactions { get; set; } = [];
 }
 
-class Reaction() {
+internal class Reaction() {
     public int Chance { get; set; }
     public string Reactant { get; set; }            // Material that causes the reaction
     public (string, string) Products { get; set; }  // Materials created by the reaction
 }
 
-static partial class Materials {
+internal static partial class Materials {
     public static Dictionary<string, Material> Index = [];
     public static List<string> ByID = [];
 
@@ -52,7 +53,7 @@ static partial class Materials {
     };
 
     public static int Count => ByID.Count;
-    public static List<string> Names => Index.Values.Select(m => m.Name).ToList();
+    public static List<string> Names => [.. Index.Values.Select(static m => m.Name)];
 
     private static DateTime _latestLoadTime = DateTime.Now;
 
@@ -64,7 +65,7 @@ static partial class Materials {
 
     // Reload material data that has changed since the last load time
     public static void ReloadMaterials() {
-        LoadMaterials(Directory.EnumerateFiles("materials", "*.toml", SearchOption.AllDirectories).Where(x => File.GetLastWriteTime(x) > _latestLoadTime));
+        LoadMaterials(Directory.EnumerateFiles("materials", "*.toml", SearchOption.AllDirectories).Where(static x => File.GetLastWriteTime(x) > _latestLoadTime));
         Pepper.Log("Materials reloaded", LogType.System);
     }
 
@@ -72,8 +73,8 @@ static partial class Materials {
     public static void LoadMaterials(IEnumerable<string> material_data_paths) {
         Pepper.Log("Reloading materials...", LogType.System);
 
-        foreach (var Data in material_data_paths) {
-            var Table = TOML.Parse(File.OpenText(Data));
+        foreach (string Data in material_data_paths) {
+            TomlTable Table = TOML.Parse(File.OpenText(Data));
             Index.Remove(Table["Material"]["name"]);
             Solids.Remove(Table["Material"]["name"]);
             Liquids.Remove(Table["Material"]["name"]);
@@ -81,29 +82,29 @@ static partial class Materials {
             Powders.Remove(Table["Material"]["name"]);
 
             // Material Data
-            var M = new Material() {
+            Material M = new Material() {
                 Type = Table["Material"]["type"],
                 ID = Table["Material"]["name"],
                 Name = Table["Material"]["ui_name"],
-                Color = Table["Material"]["color"] ==               "Tommy.TomlLazy"    ? Defaults["Color"]                                     : Table["Material"]["color"],
-                Offset = Table["Material"]["offset"] ==             "Tommy.TomlLazy"    ? Defaults["Offset"]                                    : Table["Material"]["offset"],
-                Density = Table["Material"]["density"] ==           "Tommy.TomlLazy"    ? Defaults["Density_" + Table["Material"]["type"]]      : Table["Material"]["density"],
-                Lifespan = Table["Material"]["lifespan"] ==         "Tommy.TomlLazy"    ? Defaults["Lifespan"]                                  : Table["Material"]["lifespan"],
-                Health = Table["Material"]["health"] ==             "Tommy.TomlLazy"    ? Defaults["Health"]                                    : Table["Material"]["health"],
-                Viscosity = Table["Material"]["viscosity"] ==       "Tommy.TomlLazy"    ? Defaults["Viscosity"]                                 : Table["Material"]["viscosity"],
-                Softness = Table["Material"]["softness"] ==         "Tommy.TomlLazy"    ? Defaults["Softness"]                                  : Table["Material"]["softness"],
+                Color = Table["Material"]["color"] == "Tommy.TomlLazy" ? Defaults["Color"] : Table["Material"]["color"],
+                Offset = Table["Material"]["offset"] == "Tommy.TomlLazy" ? Defaults["Offset"] : Table["Material"]["offset"],
+                Density = Table["Material"]["density"] == "Tommy.TomlLazy" ? Defaults["Density_" + Table["Material"]["type"]] : Table["Material"]["density"],
+                Lifespan = Table["Material"]["lifespan"] == "Tommy.TomlLazy" ? Defaults["Lifespan"] : Table["Material"]["lifespan"],
+                Health = Table["Material"]["health"] == "Tommy.TomlLazy" ? Defaults["Health"] : Table["Material"]["health"],
+                Viscosity = Table["Material"]["viscosity"] == "Tommy.TomlLazy" ? Defaults["Viscosity"] : Table["Material"]["viscosity"],
+                Softness = Table["Material"]["softness"] == "Tommy.TomlLazy" ? Defaults["Softness"] : Table["Material"]["softness"],
             };
 
             // Tags + Reactions
-            var Tags = new List<string>();
-            foreach (var Tag in Table["Material"]["tags"]) {
+            List<string> Tags = [];
+            foreach (TomlNode Tag in Table["Material"]["tags"]) {
                 Tags.Add(Tag.ToString());
             }
 
-            var Reactions = new List<Reaction>();
+            List<Reaction> Reactions = [];
             if (Table.HasKey("Reaction")) {
                 foreach (TomlNode Node in Table["Reaction"]) {
-                    var R = new Reaction() {
+                    Reaction R = new Reaction() {
                         Chance = Node["chance"],
                         Reactant = Node["reactant"],
                         Products = (Node["products"][0], Node["products"][1])
@@ -132,6 +133,8 @@ static partial class Materials {
                 case "Powder":
                     Powders.Add(M.ID, M);
                     break;
+                default:
+                    break;
             }
 
             // Add to the ByID list
@@ -145,19 +148,19 @@ static partial class Materials {
     }
 
     // Quick access to material data
-    public static Material Get(string id) => Index[id];
-    public static string GetName(string id) => Index[id].Name;
-    public static string GetType(string id) => Index[id].Type;
-    public static int GetDensity(string id) => Index[id].Density;
-    public static List<string> GetTags(string id) => Index[id].Tags;
-    public static List<Reaction> GetReactions(string id) => Index[id].Reactions;
-    public static List<Material> GetAllWithTag(string tag) => Index.Values.Where(M => M.Tags.Contains(tag)).ToList();
-    public static bool HasTag(string id, string tag) => Index[id].Tags.Contains(tag);
+    public static Material Get(string id) { return Index[id]; }
+    public static string GetName(string id) { return Index[id].Name; }
+    public static string GetType(string id) { return Index[id].Type; }
+    public static int GetDensity(string id) { return Index[id].Density; }
+    public static List<string> GetTags(string id) { return Index[id].Tags; }
+    public static List<Reaction> GetReactions(string id) { return Index[id].Reactions; }
+    public static List<Material> GetAllWithTag(string tag) { return [.. Index.Values.Where(M => M.Tags.Contains(tag))]; }
+    public static bool HasTag(string id, string tag) { return Index[id].Tags.Contains(tag); }
 
     // Create a new instance of a material
     public static Pixel New(string id) {
-        var M = Index[id];
-        var P = new Pixel(id) {
+        Material M = Index[id];
+        Pixel P = new Pixel(id) {
             Color = Canvas.ShiftColor(Canvas.HexColor(M.Color), RNG.Range(-M.Offset, M.Offset)),
             Lifespan = M.Lifespan,
             Health = M.Health
@@ -165,18 +168,18 @@ static partial class Materials {
         return P;
     }
 
-    // Universal Behavior (New)
-    public static void TickUniversal(World W, Pixel P, Vector2i Pos) {
+    // Universal Behavior (New, unimplemented)
+    public static void TickUniversal() {
 
     }
 
     // Liquid Behavior
     public static void TickLiquid(World W, Pixel P, Vector2i Pos) {
-        var V = Get(P.ID).Viscosity;
-        var Dir = RNG.CoinFlip() ? Direction.Left : Direction.Right;
-        var Dist = Global.ChunkSize / 5;
-        var OldPos = Pos;
-        var NewPos = OldPos + Dir;
+        int V = Get(P.ID).Viscosity;
+        Vector2i Dir = RNG.CoinFlip() ? Direction.Left : Direction.Right;
+        int Dist = Global.ChunkSize / 5;
+        Vector2i OldPos = Pos;
+        Vector2i NewPos = OldPos + Dir;
 
         for (int i = 0; i < Dist; i++) {
             // Try to move down
@@ -200,46 +203,44 @@ static partial class Materials {
     public static void TickGas(World W, Pixel P, Vector2i Pos) {
         // Small chance to move horizontally
         if (RNG.Chance(2)) {
-            foreach (var Dir in Direction.Shuffled(Direction.Horizontal)) {
+            foreach (Vector2i Dir in Direction.Shuffled(Direction.Horizontal)) {
                 if (W.ValidSwap(Pos, Pos + Dir)) { return; }
             }
         }
 
         // Try to move based on density
-        var Density = Index[P.ID].Density;
+        int Density = Index[P.ID].Density;
 
         // Zero density, try to move randomly
         if (Density == 0) {
-            foreach (var Dir in Direction.Shuffled(Direction.Full)) {
+            foreach (Vector2i Dir in Direction.Shuffled(Direction.Full)) {
                 if (W.ValidSwap(Pos, Pos + Dir)) { return; } else if (RNG.Chance(25)) { return; }
             }
         }
 
         // Positive density, try to move downwards
         if (Density > 0) {
-            foreach (var Dir in Direction.Shuffled(Direction.LowerHalf)) {
+            foreach (Vector2i Dir in Direction.Shuffled(Direction.LowerHalf)) {
                 if (W.ValidSwap(Pos, Pos + Dir)) { return; } else if (RNG.Chance(25)) { return; }
             }
         }
 
         // Negative density, try to move upwards
         if (Density < 0) {
-            foreach (var Dir in Direction.Shuffled(Direction.UpperHalf)) {
+            foreach (Vector2i Dir in Direction.Shuffled(Direction.UpperHalf)) {
                 if (W.ValidSwap(Pos, Pos + Dir)) { return; } else if (RNG.Chance(25)) { return; }
             }
         }
 
-
-
-        // Old behavior
+        // Old Gas Behavior
         // if (RNG.CoinFlip()) {
-        //     foreach (var Dir in Direction.Shuffled(Direction.Horizontal)) {
+        //     foreach (Vector2i Dir in Direction.Shuffled(Direction.Horizontal)) {
         //         if (W.ValidSwap(Pos, Pos + Dir)) { return; }
         //     }
         // }
 
-        // var Moves = Direction.Shuffled(Direction.UpperHalf);
-        // foreach (var Move in Moves) {
+        // Vector2i[] Moves = Direction.Shuffled(Direction.UpperHalf);
+        // foreach (Vector2i Move in Moves) {
         //     if (RNG.Chance(75) && W.ValidSwap(Pos, Pos + Move)) { return; }
         // }
     }
@@ -247,7 +248,7 @@ static partial class Materials {
     // Powder Behavior
     public static void TickPowder(World W, Pixel P, Vector2i Pos) {
         // Try to move down
-        var S = Index[P.ID].Softness;
+        int S = Index[P.ID].Softness;
         if (RNG.Chance(100 - S) && W.ValidSwap(Pos, Pos + Direction.Down)) { return; }
 
         if (RNG.Chance(S)) {
@@ -256,17 +257,16 @@ static partial class Materials {
         }
 
         // Try to move diagonal downwards
-        var Dir = Direction.Random(Direction.DiagonalDown);
+        Vector2i Dir = Direction.Random(Direction.DiagonalDown);
         if (W.ValidSwap(Pos, Pos + Dir)) { return; }
         if (W.ValidSwap(Pos, Pos + Direction.FlipH(Dir))) { return; }
     }
 
     // Tag checking regex
-    public static bool IsTag(string str) => IsTag().IsMatch(str);                   // Checks if a string is a [tag] and not a [tag]_substr
-    public static bool ContainsTag(string str) => ContainsTag().IsMatch(str);       // Checks if a string contains a [tag]
-    public static string ExtractTag(string str) => ContainsTag().Match(str).Value;  // Extracts a [tag] from a [tag]_substr string
-
-    public static bool IsStatus(string str) => IsStatus().IsMatch(str);             // Check if a string is a <status>
+    public static bool IsTag(string str) { return IsTag().IsMatch(str); }
+    public static bool ContainsTag(string str) { return ContainsTag().IsMatch(str); }
+    public static string ExtractTag(string str) { return ContainsTag().Match(str).Value; }
+    public static bool IsStatus(string str) { return IsStatus().IsMatch(str); }
 
     [GeneratedRegex(@"^\[.*\]$")]
     private static partial Regex IsTag();

@@ -3,11 +3,13 @@ using rlImGui_cs;
 using Raylib_cs;
 using static Raylib_cs.Raylib;
 using static Raylib_cs.TraceLogLevel;
+using Myriad.Core;
+using Myriad.Helper;
 
 namespace Myriad;
 
-class Program {
-    static void Main(string[] args) {
+public class Program {
+    public static void Main(string[] args) {
         // Window Setup
         SetTraceLogLevel(Warning | Error | Fatal);
         SetExitKey(KeyboardKey.Null);
@@ -18,11 +20,11 @@ class Program {
         // System Setup
         Engine.Init();
 
-        var SW = new Stopwatch();
+        Stopwatch SW = new Stopwatch();
         SW.Start();
 
-        double totalTime = 0.0;
-        long previousTime = SW.ElapsedMilliseconds;
+        long totalTimeTicks = 0;
+        long previousTimeTicks = SW.Elapsed.Ticks;
         long lastSecondTime = 0;
         int tickCount = 0;
 
@@ -32,18 +34,23 @@ class Program {
         // Main Loop
         while (!WindowShouldClose()) {
             // Timing
-            if (!Engine.Paused) {
-                long currentTime = SW.ElapsedMilliseconds;
-                long elapsedTime = currentTime - previousTime;
-                previousTime = currentTime;
-                totalTime += elapsedTime;
+            long currentTimeTicks = SW.Elapsed.Ticks;
+            long currentTimeMs = SW.ElapsedMilliseconds;
 
-                if (currentTime - lastSecondTime >= 1000) {
-                    lastSecondTime = currentTime;
-                    tickCount = 0;
-                }
-            } else {
-                previousTime = SW.ElapsedMilliseconds;
+            if (Engine.TimingReset) {
+                totalTimeTicks = 0;
+                previousTimeTicks = currentTimeTicks;
+                Engine.TimingReset = false;
+            } else if (!Engine.Paused) {
+                long elapsedTicks = currentTimeTicks - previousTimeTicks;
+                totalTimeTicks += elapsedTicks;
+            }
+
+            previousTimeTicks = currentTimeTicks;
+
+            if (currentTimeMs - lastSecondTime >= 1000) {
+                lastSecondTime = currentTimeMs;
+                tickCount = 0;
             }
 
 
@@ -53,9 +60,9 @@ class Program {
 
             // Tick
             int ticksThisFrame = 0;
-            while (totalTime >= Engine.TickInterval && ticksThisFrame < Engine.MaxTicksPerFrame) {
+            while ((totalTimeTicks >= Engine.TickIntervalTicks && ticksThisFrame < Engine.MaxTicksPerFrame)) {
                 Engine.Tick();
-                totalTime -= Engine.TickInterval;
+                totalTimeTicks -= Engine.TickIntervalTicks;
                 ticksThisFrame++;
                 tickCount++;
             }

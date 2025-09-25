@@ -1,8 +1,8 @@
 using Calcium;
 
-namespace Myriad;
+namespace Myriad.Core;
 
-class Chunk {
+internal class Chunk {
     public Vector2i Position { get; private set; }
     public int ThreadOrder { get; private set; }
 
@@ -22,9 +22,8 @@ class Chunk {
     private readonly int _rectBuffer = 2;
 
     private readonly int _timeToSleep = 30;
-    private int _sleepTimer;
 
-    public int SleepTimer => _sleepTimer;
+    public int SleepTimer { get; private set; }
 
     public Chunk(Vector2i position, int thread_order) {
         Position = position;
@@ -34,11 +33,11 @@ class Chunk {
 
     public void Wake(Vector2i pos) {
         WakeNextStep = true;
-        _sleepTimer = _timeToSleep;
+        SleepTimer = _timeToSleep;
 
         if (Awake) {
-            var X = pos.X - Position.X;
-            var Y = pos.Y - Position.Y;
+            int X = pos.X - Position.X;
+            int Y = pos.Y - Position.Y;
 
             _x1 = Math.Clamp(Math.Min(X - _rectBuffer, _x1), 0, Global.ChunkSize);
             _y1 = Math.Clamp(Math.Min(Y - _rectBuffer, _y1), 0, Global.ChunkSize);
@@ -56,10 +55,8 @@ class Chunk {
         UpdateRect();
 
         if (Awake && !WakeNextStep) {
-            _sleepTimer--;
-            if (_sleepTimer == _timeToSleep / 2) {
-                // ResetRect();
-            } else if (_sleepTimer == 0) {
+            SleepTimer--;
+            if (SleepTimer == 0) {
                 Awake = false;
             }
         } else {
@@ -78,12 +75,5 @@ class Chunk {
         _y1 = Global.ChunkSize - 1;
         _x2 = 0;
         _y2 = 0;
-    }
-
-    private void ResetRect() {
-        X1 = 0;
-        Y1 = 0;
-        X2 = Global.ChunkSize - 1;
-        Y2 = Global.ChunkSize - 1;
     }
 }

@@ -1,11 +1,12 @@
+using Myriad.Helper;
 using Raylib_cs;
 
-namespace Myriad;
+namespace Myriad.Core;
 
 // TODO
 // - Move the Damage and Stain methods to some sort of "PixelHandler" class or something, and move some parts of World that deal with Pixel properties to that class
 
-class Pixel {
+public class Pixel {
     public string ID { get; private set; }
     public Color Color { get; set; }            = Color.Magenta;
     public bool Updated { get; set; }           = true;

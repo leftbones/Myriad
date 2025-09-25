@@ -1,9 +1,9 @@
 using System.Numerics;
 using Raylib_cs;
 
-namespace Myriad;
+namespace Myriad.Core;
 
-static class Global {
+internal static class Global {
     public static int PixelScale = 4;
     public static int ChunkSize = 50;
 
