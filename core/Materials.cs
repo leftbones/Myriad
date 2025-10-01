@@ -59,13 +59,13 @@ internal static partial class Materials {
 
     // Initialize the Materials
     public static void Init() {
-        LoadMaterials(Directory.EnumerateFiles("materials", "*.toml", SearchOption.AllDirectories));
+        LoadMaterials(Directory.EnumerateFiles(Global.MaterialDataPath, "*.toml", SearchOption.AllDirectories));
         Pepper.Log("Materials initialized", LogType.System);
     }
 
     // Reload material data that has changed since the last load time
     public static void ReloadMaterials() {
-        LoadMaterials(Directory.EnumerateFiles("materials", "*.toml", SearchOption.AllDirectories).Where(static x => File.GetLastWriteTime(x) > _latestLoadTime));
+        LoadMaterials(Directory.EnumerateFiles(Global.MaterialDataPath, "*.toml", SearchOption.AllDirectories).Where(static x => File.GetLastWriteTime(x) > _latestLoadTime));
         Pepper.Log("Materials reloaded", LogType.System);
     }
 
@@ -165,12 +165,58 @@ internal static partial class Materials {
             Lifespan = M.Lifespan,
             Health = M.Health
         };
+
+        P.Reactions = M.Reactions;
         return P;
     }
 
-    // Universal Behavior (New, unimplemented)
-    public static void TickUniversal() {
+    // New Liquid Behavior
+    public static void TickLiquidNew(World W, Pixel P, Vector2i Pos) {
+        Vector2i Dir = RNG.CoinFlip() ? Direction.Left : Direction.Right;
+        Vector2i OldPos = Pos;
+        Vector2i NewPos = OldPos + Dir;
 
+        for (int i = 0; i < 5; i++) {
+        	if (W.ValidSwap(OldPos, OldPos + Direction.Down)) {
+                Dir = Direction.Down;
+                NewPos = OldPos + Dir;
+                break;
+         	}
+            if (W.ValidSwap(OldPos, NewPos)) {
+                OldPos = NewPos;
+                NewPos += Dir;
+            } else {
+                Dir = Direction.FlipH(Dir);
+                NewPos = OldPos + Dir;
+            }
+        }
+
+        // W.CanReact(Get(P.ID), NewPos, Dir);
+
+        if (!W.InBounds(NewPos + Dir)) { return; }
+        Pixel N = W.Get(NewPos + Dir);
+
+        Reaction R = P.Reactions.Find(r => r.Reactant == N.ID);
+        if (R == null) { return; }
+
+        if (RNG.Odds(R.Chance)) {
+            W.Set(NewPos, New(R.Products.Item1));
+            W.Set(NewPos + Dir, New(R.Products.Item2));
+        }
+    }
+
+    // New Gas Behavior
+    public static void TickGasNew(World W, Pixel P, Vector2i Pos) {
+    	// No clue how to make this better
+    }
+
+    // New Powder Behavior
+	public static void TickPowderNew(World W, Pixel P, Vector2i Pos) {
+        if (W.ValidSwap(Pos, Pos + Direction.Down)) { return; }
+
+        Vector2i Dir = Direction.Random(Direction.DiagonalDown);
+        if (W.ValidSwap(Pos, Pos + Dir)) { return; }
+        if (W.ValidSwap(Pos, Pos + Direction.FlipH(Dir))) { return; }
     }
 
     // Liquid Behavior
@@ -183,7 +229,11 @@ internal static partial class Materials {
 
         for (int i = 0; i < Dist; i++) {
             // Try to move down
-            if (W.ValidSwap(OldPos, OldPos + Direction.Down)) { return; }
+            if (W.ValidSwap(OldPos, OldPos + Direction.Down)) {
+                Dir = Direction.Down;
+                NewPos = OldPos + Dir;
+                break;
+            }
 
             // Chance to stop moving
             if (RNG.Chance(1)) { return; }
@@ -196,6 +246,11 @@ internal static partial class Materials {
                 Dir = Direction.FlipH(Dir);
                 NewPos = OldPos + Dir;
             }
+        }
+
+        // Reaction
+        if (W.CanReact(Get(P.ID), NewPos, Dir)) {
+            return;
         }
     }
 

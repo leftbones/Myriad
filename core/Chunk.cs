@@ -21,7 +21,7 @@ internal class Chunk {
 
     private readonly int _rectBuffer = 2;
 
-    private readonly int _timeToSleep = 30;
+    private readonly int _timeToSleep = 60;
 
     public int SleepTimer { get; private set; }
 

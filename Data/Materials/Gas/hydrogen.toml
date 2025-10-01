@@ -1,5 +1,5 @@
 [Material]
-name = "hydrogen_gas"
+name = "hydrogen"
 ui_name = "Hydrogen"
 type = "gas"
 color = "00ff0022"
@@ -8,5 +8,5 @@ lifespan = 700
 
 # [[Reaction]]
 # chance = 1
-# input = ["hydrogen_gas", "[corrodible]"]
+# input = ["hydrogen", "[corrodible]"]
 # output = ["air", "hydrogen_gas"]

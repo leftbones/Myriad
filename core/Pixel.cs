@@ -6,13 +6,15 @@ namespace Myriad.Core;
 // TODO
 // - Move the Damage and Stain methods to some sort of "PixelHandler" class or something, and move some parts of World that deal with Pixel properties to that class
 
-public class Pixel {
+internal class Pixel {
     public string ID { get; private set; }
     public Color Color { get; set; }            = Color.Magenta;
     public bool Updated { get; set; }           = true;
     public int Lifetime { get; set; }           = 0;
     public int Lifespan { get; set; }           = -1;
     public int Health { get; set; }             = -1;
+
+    public List<Reaction> Reactions { get; set; }	// Cached list of reactions for this Pixel's material type
 
     // Status Conditions
     public bool Burning { get; set; }           = false;

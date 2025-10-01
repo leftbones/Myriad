@@ -4,6 +4,8 @@ using Raylib_cs;
 namespace Myriad.Core;
 
 internal static class Global {
+    public static String MaterialDataPath = "Data/Materials";
+
     public static int PixelScale = 4;
     public static int ChunkSize = 50;
 

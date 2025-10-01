@@ -5,11 +5,6 @@ type = "liquid"
 color = "0197f477"
 
 [[Reaction]]
-chance = 50
-reactant = "oil"
-products = ["water_dirty", "water_dirty"]
-
-[[Reaction]]
 chance = 5
 input = ["water", "[rustable]"]
 output = ["water", "rust"]

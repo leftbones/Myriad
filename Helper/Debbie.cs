@@ -43,18 +43,21 @@ internal static class Debbie {
     };
 
     public static void Init() {
-        LoadMaterial();
+        _materialInspectorIndex = Canvas.BrushMaterialID; // if this isn't set, for some reason it defaults to 11 (Hydrogen), even though it's defined as 0, and I have NO idea why
 
         Pepper.Log("Debbie initialized", LogType.System);
     }
 
+    // Save the data of the currently selected material
     private static void SaveMaterial() {
         // if (Config.VerboseLogging) { Pepper.Log($"Material data saved to '{_editorMaterialPath}'", LogType.System); }
+        Pepper.Throw("Function not implemented");
     }
 
+    // Load the data of the currently selected material
     private static void LoadMaterial() {
         _loadedMaterial = Materials.Index[Materials.ByID[_materialInspectorIndex]];
-        _loadedMaterialPath = $"materials/{_loadedMaterial.Type}/{_loadedMaterial.ID}.toml";
+        _loadedMaterialPath = $"{Global.MaterialDataPath}/{_loadedMaterial.Type}/{_loadedMaterial.ID}.toml";
         _loadedMaterialData = File.OpenText(_loadedMaterialPath).ReadToEnd();
         if (Config.VerboseLogging) { Pepper.Log($"Loaded material data file at '{_loadedMaterialPath}'", LogType.System); }
     }
@@ -95,7 +98,7 @@ internal static class Debbie {
             } else {
                 if (ImGui.Button("Brush")) { _showBrushMenu = !_showBrushMenu; } ImGui.SameLine();
                 if (ImGui.Button("World")) { _showWorldMenu = !_showWorldMenu; } ImGui.SameLine();
-                if (ImGui.Button("Materials")) { _showMaterialsMenu = !_showMaterialsMenu; } ImGui.SameLine();
+                if (ImGui.Button("Materials")) { _showMaterialsMenu = !_showMaterialsMenu; if (_showMaterialsMenu) { LoadMaterial(); } } ImGui.SameLine();
                 if (ImGui.Button("Stats")) { _showStatsMenu = !_showStatsMenu; } ImGui.SameLine();
                 if (ImGui.ArrowButton("hideMenuButton", ImGuiDir.Left)) { _debugMenuCollapsed = true; }
             }

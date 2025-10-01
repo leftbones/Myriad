@@ -19,7 +19,7 @@ internal class World {
     public List<Particle> Particles { get; private set; }
 
     public int Tick { get; private set; }
-    public int PixelCount => Pixels.Count(static P => P.ID != "air");  // FIXME: THIS IS VERY SLOW
+    public int PixelCount => Pixels.Count(static P => P.ID != "air");  	// FIXME: THIS IS VERY SLOW
     public int ParticleCount => Particles.Count;    					// FIXME: THIS IS ALSO PRETTY SLOW
 
     public bool ProcessDone { get; set; }
@@ -195,53 +195,6 @@ internal class World {
         return false;
     }
 
-
-    // Try to perform reactions between materials
-    public bool CanReact(Material M, Vector2i Pos, Vector2i Dir) {
-        if (InBounds(Pos + Dir)) {
-            Pixel P = Get(Pos);
-            Pixel NP = Get(Pos + Dir);
-
-            // Check for a reaction between this pixel's material and it's neighbor's material
-            Reaction Reaction = M.Reactions.Find(R => R.Reactant == NP.ID);
-            if (Reaction == null) { return false; }
-            if (RNG.Odds(Reaction.Chance)) {
-                // Pixel
-                if (Materials.IsStatus(Reaction.Products.Item1)) {
-                    switch (Reaction.Products.Item1) {
-                        case "<burning>":
-                            P.Burning = true;
-                            break;
-                        default:
-                            break;
-                    }
-                }
-                else {
-                    Set(Pos, Materials.New(Reaction.Products.Item1));
-                }
-
-                // Neighbor
-                if (Materials.IsStatus(Reaction.Products.Item2)) {
-                    switch (Reaction.Products.Item2) {
-                        case "<burning>":
-                            NP.Burning = true;
-                            break;
-                        default:
-                        	break;
-                    }
-                }
-                else {
-                    Set(Pos + Dir, Materials.New(Reaction.Products.Item2));
-                }
-
-                return true;
-            }
-        }
-
-        // No reactions occurred
-        return false;
-    }
-
     // Get a Chunk from a position in the World
     public Chunk GetChunk(int x, int y) { return GetChunk(new Vector2i(x, y)); }
     public Chunk GetChunk(Vector2i pos) {
@@ -366,29 +319,6 @@ internal class World {
         UpdateEnd();
     }
 
-    // Update in multiple threads (old method)
-    // public void ThreadedUpdate() {
-    //     IOrderedEnumerable<IGrouping<int, Chunk>> ChunkGroups = Chunks.GroupBy(C => C.ThreadOrder).OrderBy(G => G.Key);
-
-    //     foreach (IGrouping<int, Chunk> Group in ChunkGroups) {
-    //         Chunk[] ChunksArray = [.. Group];
-    //         Thread[] threads = new Thread[ChunksArray.Length];
-
-    //         for (int i = 0; i < ChunksArray.Length; i++) {
-    //             Chunk chunk = ChunksArray[i];
-    //             threads[i] = new Thread(() => {
-    //                 ProcessChunk(chunk);
-    //                 chunk.Step();
-    //             });
-    //             threads[i].Start();
-    //         }
-
-    //         for (int i = 0; i < threads.Length; i++) {
-    //             threads[i].Join();
-    //         }
-    //     }
-    // }
-
     // Update in parallel (new method, seems faster)
     public void ParallelUpdate() {
         IOrderedEnumerable<IGrouping<int, Chunk>> ChunkGroups = Chunks.GroupBy(C => C.ThreadOrder).OrderBy(G => G.Key); // Should be updating only active chunks I think?
@@ -413,10 +343,6 @@ internal class World {
 
     // Process all Pixels in a Chunk
     public void ProcessChunk(Chunk chunk) {
-        // if (!chunk.Awake) {
-        //     return;
-        // }
-
         bool IET = Tick % 2 == 0;
 
         int X1 = chunk.Position.X + chunk.X1;
@@ -466,11 +392,11 @@ internal class World {
                         continue;
 
                     case "powder":
-                        Materials.TickPowder(this, P, Pos);
+                        Materials.TickPowderNew(this, P, Pos);
                         break;
 
                     case "liquid":
-                        Materials.TickLiquid(this, P, Pos);
+                        Materials.TickLiquidNew(this, P, Pos);
                         break;
 
                     case "gas":
@@ -480,25 +406,59 @@ internal class World {
                     default:
                         break;
                 }
+
+                // Reactions
+                // Vector2i RandomDir = Direction.Random(Direction.Cardinal);
+                // CanReact(M, Pos, RandomDir); // Return value not needed
             }
         }
+    }
 
-        // Reactions + Interactions (NOTE: What did I mean by "Interactions"? I can't remember and I can't figure it out.)
-        for (int y = Y2; y >= Y1; y--) {
-            for (int x = IET ? X1 : X2; IET ? x <= X2 : x >= X1; x += IET ? 1 : -1) {
-                Pixel P = Get(x, y);
-                if (!P.Updated) { continue; } // Only attempt reactions on Pixels that have been updated this tick
+    // Try to perform reactions between materials
+    public bool CanReact(Material M, Vector2i Pos, Vector2i Dir) {
+        if (InBounds(Pos + Dir)) {
+            Pixel P = Get(Pos);
+            Pixel NP = Get(Pos + Dir);
 
-                Material M = Materials.Index[P.ID];
-                Vector2i Pos = new Vector2i(x, y);
-                Vector2i Dir = Direction.Random(Direction.Cardinal);
+            // Check for a reaction between this pixel's material and it's neighbor's material
+            Reaction Reaction = M.Reactions.Find(R => R.Reactant == NP.ID);
+            if (Reaction == null) { return false; }
 
-                // Attempt reactions in a random direction
-                if (CanReact(M, Pos, Dir)) {
-                    break;
+            if (RNG.Odds(Reaction.Chance)) {
+                // Pixel
+                if (Materials.IsStatus(Reaction.Products.Item1)) {
+                    switch (Reaction.Products.Item1) {
+                        case "<burning>":
+                            P.Burning = true;
+                            break;
+                        default:
+                            break;
+                    }
                 }
+                else {
+                    Set(Pos, Materials.New(Reaction.Products.Item1));
+                }
+
+                // Neighbor
+                if (Materials.IsStatus(Reaction.Products.Item2)) {
+                    switch (Reaction.Products.Item2) {
+                        case "<burning>":
+                            NP.Burning = true;
+                            break;
+                        default:
+                        	break;
+                    }
+                }
+                else {
+                    Set(Pos + Dir, Materials.New(Reaction.Products.Item2));
+                }
+
+                return true;
             }
         }
+
+        // No reactions occurred
+        return false;
     }
 
     // Draw everything visible in the World

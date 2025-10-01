@@ -3,7 +3,7 @@ using Raylib_cs;
 
 namespace Myriad.Core;
 
-public class Particle {
+internal class Particle {
     public Pixel ContactPixel { get; set; }		// Pixel to turn into when coming in contact with another Pixel
     public Pixel ExpirePixel { get; set; }		// Pixel to turn into when expiring
     public Vector2 Position { get; set; }

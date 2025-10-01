@@ -8,11 +8,6 @@ viscosity = 10
 tags = ["flammable"]
 
 [[Reaction]]
-chance = 10
+chance = 25
 reactant = "water"
 products = ["oil", "water_dirty"]
-
-[[Reaction]]
-chance = 25
-reactant = "water_dirty"
-products = ["water_dirty", "water_dirty"]
